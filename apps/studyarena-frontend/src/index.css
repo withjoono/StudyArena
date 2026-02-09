@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-white text-gray-900 font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer components {
+
+  /* ========================================
+   * 카드 컴포넌트 (흰색 바탕 기반)
+   * ======================================== */
+  .card-glass {
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm;
+  }
+
+  .card-glass-hover {
+    @apply card-glass hover:border-arena-500/30 hover:shadow-md hover:shadow-arena-500/5 transition-all duration-300;
+  }
+
+  /* ========================================
+   * 순위 뱃지 (골드/실버/브론즈)
+   * ======================================== */
+  .rank-badge {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold;
+  }
+
+  .rank-1 {
+    @apply bg-gradient-to-br from-yellow-400 to-amber-500 text-gray-900 shadow-lg shadow-yellow-500/30;
+  }
+
+  .rank-2 {
+    @apply bg-gradient-to-br from-gray-300 to-gray-400 text-gray-900 shadow-lg shadow-gray-400/20;
+  }
+
+  .rank-3 {
+    @apply bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-600/20;
+  }
+
+  /* ========================================
+   * 버튼 (arena-500 기반)
+   * ======================================== */
+  .btn-primary {
+    @apply bg-arena-500 hover:bg-arena-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-arena-500/25 hover:shadow-arena-600/40 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-5 py-2 rounded-xl border border-gray-200 transition-all duration-200 active:scale-95;
+  }
+
+  .btn-outline {
+    @apply border-arena-500 text-arena-500 hover:bg-arena-50 font-medium px-5 py-2 rounded-xl border transition-all duration-200 active:scale-95;
+  }
+
+  /* ========================================
+   * 입력 필드
+   * ======================================== */
+  .input-field {
+    @apply bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-arena-500 focus:ring-1 focus:ring-arena-500/25 transition-all duration-200;
+  }
+
+  /* ========================================
+   * 탭 선택 상태
+   * ======================================== */
+  .tab-active {
+    @apply bg-arena-500 text-white;
+  }
+
+  .tab-inactive {
+    @apply text-gray-700 hover:text-gray-500;
+  }
+
+  /* ========================================
+   * 뱃지 / 태그
+   * ======================================== */
+  .badge-primary {
+    @apply bg-arena-100 text-arena-500;
+  }
+
+  /* ========================================
+   * 알림 박스
+   * ======================================== */
+  .alert-primary {
+    @apply bg-gradient-to-r from-arena-50 to-arena-100 border border-arena-200;
+  }
+}
+
+@layer utilities {
+  .text-gradient-arena {
+    @apply bg-gradient-to-r from-arena-500 to-arena-400 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent;
+  }
+}

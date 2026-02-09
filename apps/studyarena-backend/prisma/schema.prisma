@@ -1,0 +1,83 @@
+// StudyArena Prisma Schema
+// Hub 공유 DB (geobukschool_dev) — 모든 테이블에 sa_ 접두사
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================================================
+// StudyArena 테이블 (Hub DB 공유, sa_ 접두사)
+// ================================================================
+
+/// 아레나 클래스 (반/그룹)
+model Arena {
+  id          BigInt   @id @default(autoincrement())
+  arenaCode   String   @unique @map("arena_code") @db.VarChar(20)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  ownerId     BigInt   @map("owner_id")
+  inviteCode  String   @unique @map("invite_code") @db.VarChar(10)
+  maxMembers  Int      @default(50) @map("max_members")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members   ArenaMember[]
+  snapshots DailySnapshot[]
+
+  @@index([ownerId], name: "idx_sa_arena_owner")
+  @@index([inviteCode], name: "idx_sa_arena_invite")
+  @@map("sa_arena")
+}
+
+/// 아레나 멤버십 (학생-클래스 연결)
+model ArenaMember {
+  id          BigInt   @id @default(autoincrement())
+  arenaId     BigInt   @map("arena_id")
+  studentId   BigInt   @map("student_id")
+  hubMemberId BigInt?  @map("hub_member_id")
+  role        String   @default("member") @db.VarChar(20)
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  arena     Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  snapshots DailySnapshot[]
+
+  @@unique([arenaId, studentId], name: "uk_sa_arena_member")
+  @@index([arenaId], name: "idx_sa_member_arena")
+  @@index([studentId], name: "idx_sa_member_student")
+  @@index([hubMemberId], name: "idx_sa_member_hub")
+  @@map("sa_arena_member")
+}
+
+/// 일간 학습 성과 스냅샷 (캐싱용)
+model DailySnapshot {
+  id                BigInt   @id @default(autoincrement())
+  arenaId           BigInt   @map("arena_id")
+  memberId          BigInt   @map("member_id")
+  studentId         BigInt   @map("student_id")
+  date              DateTime @db.Date
+  totalMissions     Int      @default(0) @map("total_missions")
+  completedMissions Int      @default(0) @map("completed_missions")
+  achievementPct    Decimal  @default(0) @map("achievement_pct") @db.Decimal(5, 2)
+  totalStudyMin     Int      @default(0) @map("total_study_min")
+  avgFocusRate      Decimal? @map("avg_focus_rate") @db.Decimal(3, 2)
+  score             Decimal  @default(0) @db.Decimal(7, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  arena  Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  member ArenaMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, studentId, date], name: "uk_sa_snapshot_arena_student_date")
+  @@index([arenaId, date], name: "idx_sa_snapshot_arena_date")
+  @@index([memberId], name: "idx_sa_snapshot_member")
+  @@map("sa_daily_snapshot")
+}
