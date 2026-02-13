@@ -81,7 +81,7 @@ export class BadgeService {
 
         // 이미 획득했는지 확인
         const existing = await this.prisma.memberBadge.findUnique({
-            where: { memberId_badgeId: { memberId: BigInt(memberId), badgeId: badge.id } },
+            where: { uk_sa_member_badge: { memberId: BigInt(memberId), badgeId: badge.id } },
         });
         if (existing) return null;
 
