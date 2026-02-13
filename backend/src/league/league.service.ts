@@ -149,7 +149,7 @@ export class LeagueService {
 
             await this.prisma.memberLeague.upsert({
                 where: {
-                    memberId_arenaId_weekStart: {
+                    uk_sa_member_league: {
                         memberId: BigInt(entry.memberId),
                         arenaId: BigInt(arenaId),
                         weekStart,
