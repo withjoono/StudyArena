@@ -28,4 +28,4 @@ Thumbs.db
 npm-debug.log*
 
 # Prisma
-apps/studyarena-backend/prisma/*.db
+backend/prisma/*.db

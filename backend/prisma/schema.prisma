@@ -1,0 +1,182 @@
+// StudyArena Prisma Schema
+// Hub 공유 DB (geobukschool_dev) — 모든 테이블에 sa_ 접두사
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================================================
+// StudyArena 테이블 (Hub DB 공유, sa_ 접두사)
+// ================================================================
+
+/// 아레나 클래스 (반/그룹)
+model Arena {
+  id          BigInt   @id @default(autoincrement())
+  arenaCode   String   @unique @map("arena_code") @db.VarChar(20)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  ownerId     BigInt   @map("owner_id")
+  inviteCode  String   @unique @map("invite_code") @db.VarChar(10)
+  maxMembers  Int      @default(50) @map("max_members")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members   ArenaMember[]
+  snapshots DailySnapshot[]
+
+  @@index([ownerId], name: "idx_sa_arena_owner")
+  @@index([inviteCode], name: "idx_sa_arena_invite")
+  @@map("sa_arena")
+}
+
+/// 아레나 멤버십 (학생-클래스 연결)
+model ArenaMember {
+  id          BigInt   @id @default(autoincrement())
+  arenaId     BigInt   @map("arena_id")
+  studentId   BigInt   @map("student_id")
+  hubMemberId BigInt?  @map("hub_member_id")
+  role        String   @default("member") @db.VarChar(20)
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  arena     Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  snapshots DailySnapshot[]
+
+  @@unique([arenaId, studentId], name: "uk_sa_arena_member")
+  @@index([arenaId], name: "idx_sa_member_arena")
+  @@index([studentId], name: "idx_sa_member_student")
+  @@index([hubMemberId], name: "idx_sa_member_hub")
+  @@map("sa_arena_member")
+}
+
+/// 일간 학습 성과 스냅샷 (캐싱용)
+model DailySnapshot {
+  id                BigInt   @id @default(autoincrement())
+  arenaId           BigInt   @map("arena_id")
+  memberId          BigInt   @map("member_id")
+  studentId         BigInt   @map("student_id")
+  date              DateTime @db.Date
+  totalMissions     Int      @default(0) @map("total_missions")
+  completedMissions Int      @default(0) @map("completed_missions")
+  achievementPct    Decimal  @default(0) @map("achievement_pct") @db.Decimal(5, 2)
+  totalStudyMin     Int      @default(0) @map("total_study_min")
+  avgFocusRate      Decimal? @map("avg_focus_rate") @db.Decimal(3, 2)
+  score             Decimal  @default(0) @db.Decimal(7, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  arena  Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  member ArenaMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, studentId, date], name: "uk_sa_snapshot_arena_student_date")
+  @@index([arenaId, date], name: "idx_sa_snapshot_arena_date")
+  @@index([memberId], name: "idx_sa_snapshot_member")
+  @@map("sa_daily_snapshot")
+}
+
+// ================================================================
+// 리그 시스템
+// ================================================================
+
+/// 리그 등급
+model League {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @db.VarChar(30) // 브론즈, 실버, 골드 등
+  tier      String   @unique @db.VarChar(20) // bronze, silver, gold, platinum, diamond, master
+  minScore  Decimal  @default(0) @map("min_score") @db.Decimal(7, 2)
+  maxScore  Decimal? @map("max_score") @db.Decimal(7, 2)
+  color     String   @default("#6b7280") @db.VarChar(10) // 리그 색상
+  icon      String   @default("🥉") @db.VarChar(10) // 리그 아이콘
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  members MemberLeague[]
+
+  @@map("sa_league")
+}
+
+/// 멤버-리그 배정
+model MemberLeague {
+  id         BigInt   @id @default(autoincrement())
+  memberId   BigInt   @map("member_id")
+  leagueId   BigInt   @map("league_id")
+  arenaId    BigInt   @map("arena_id")
+  season     Int      @default(1) // 시즌 번호
+  weekStart  DateTime @map("week_start") @db.Date
+  avgScore   Decimal  @default(0) @map("avg_score") @db.Decimal(7, 2)
+  promoted   Boolean  @default(false)
+  demoted    Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  league League @relation(fields: [leagueId], references: [id])
+
+  @@unique([memberId, arenaId, weekStart], name: "uk_sa_member_league")
+  @@index([arenaId, weekStart], name: "idx_sa_ml_arena_week")
+  @@index([leagueId], name: "idx_sa_ml_league")
+  @@map("sa_member_league")
+}
+
+// ================================================================
+// 응원 시스템
+// ================================================================
+
+/// 응원 메시지
+model Cheer {
+  id         BigInt   @id @default(autoincrement())
+  arenaId    BigInt   @map("arena_id")
+  senderId   BigInt   @map("sender_id")   // hubMemberId
+  receiverId BigInt   @map("receiver_id") // hubMemberId
+  type       String   @default("fire") @db.VarChar(20) // fire, sticker, trophy
+  message    String?  @db.VarChar(200)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([receiverId, createdAt], name: "idx_sa_cheer_receiver")
+  @@index([arenaId, createdAt], name: "idx_sa_cheer_arena")
+  @@map("sa_cheer")
+}
+
+// ================================================================
+// 배지 & 컬렉션 시스템
+// ================================================================
+
+/// 배지 정의
+model Badge {
+  id          BigInt   @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50) // streak_7, hours_100, missions_50 등
+  name        String   @db.VarChar(50)
+  description String   @db.VarChar(200)
+  icon        String   @db.VarChar(10)     // 이모지
+  category    String   @default("general") @db.VarChar(30) // streak, time, mission, social
+  condition   Json                          // 달성 조건 {type: "streak", value: 7}
+  rarity      String   @default("common") @db.VarChar(20) // common, rare, epic, legendary
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  members MemberBadge[]
+
+  @@map("sa_badge")
+}
+
+/// 멤버 배지 획득
+model MemberBadge {
+  id        BigInt   @id @default(autoincrement())
+  memberId  BigInt   @map("member_id")
+  badgeId   BigInt   @map("badge_id")
+  arenaId   BigInt   @map("arena_id")
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([memberId, badgeId], name: "uk_sa_member_badge")
+  @@index([memberId], name: "idx_sa_mb_member")
+  @@map("sa_member_badge")
+}
+
