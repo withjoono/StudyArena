@@ -13,6 +13,9 @@ RUN npm ci
 
 COPY . .
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Build the application
 RUN npm run build
 
@@ -25,6 +28,10 @@ COPY package.json package-lock.json* ./
 
 # Install production dependencies
 RUN npm ci --omit=dev
+
+# Copy Prisma schema and generate client for production
+COPY --from=builder /app/prisma ./prisma
+RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
 
