@@ -40,6 +40,16 @@ export class ArenaController {
     }
 
     /**
+     * 내 멤버십 조회 (및 AuthMember 동기화)
+     */
+    @Get(':id/membership')
+    async getMyMembership(@Req() req: Request, @Param('id') arenaId: string) {
+        const user = (req as any).user;
+        const hubMemberId = parseInt(user.jti, 10);
+        return this.arenaService.getMyMembership(parseInt(arenaId, 10), hubMemberId);
+    }
+
+    /**
      * 초대 코드로 아레나 참여
      */
     @Post('join')

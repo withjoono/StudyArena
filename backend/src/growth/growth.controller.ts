@@ -33,4 +33,15 @@ export class GrowthController {
             parseInt(curr, 10),
         );
     }
+
+    @Get('streak')
+    async getStudyStreak(
+        @Query('memberId') memberId: string,
+        @Query('arenaId') arenaId: string,
+    ) {
+        return this.growthService.getStudyStreak(
+            parseInt(memberId, 10),
+            parseInt(arenaId, 10),
+        );
+    }
 }

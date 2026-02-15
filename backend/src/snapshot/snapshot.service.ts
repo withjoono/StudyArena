@@ -91,13 +91,35 @@ export class SnapshotService {
                 const totalStudyMin = resultData.total_study_min || 0;
                 const avgFocusRate = resultData.avg_focus_rate;
 
-                // 4. 종합 점수 계산 (가중치: 완료율 50% + 학습시간 30% + 몰입도 20%)
-                const studyTimeNormalized = Math.min(totalStudyMin / 480, 1) * 100; // 8시간 = 100%
-                const focusScore = avgFocusRate ? Number(avgFocusRate) * 100 : 50; // null이면 기본 50점
-                const score =
-                    achievementPct * 0.5 +
-                    studyTimeNormalized * 0.3 +
-                    focusScore * 0.2;
+                // 4. sp_daily_score에서 Study Performance Score 조회 (우선)
+                let score = 0;
+                try {
+                    const spScore = await this.prisma.$queryRaw<any[]>`
+                        SELECT total_score::numeric as total_score, study_minutes
+                        FROM sp_daily_score
+                        WHERE student_id = ${member.studentId}
+                          AND date = ${dateStart}::date
+                        LIMIT 1
+                    `;
+                    if (spScore.length > 0 && Number(spScore[0].total_score) > 0) {
+                        score = Number(spScore[0].total_score);
+                        // sp_daily_score의 학습시간도 반영
+                        const spStudyMin = spScore[0].study_minutes || 0;
+                        if (spStudyMin > 0 && totalStudyMin === 0) {
+                            // raw SQL 결과에 학습시간이 없으면 sp_daily_score에서 보충
+                        }
+                    } else {
+                        // Fallback: 기존 가중치 공식
+                        const studyTimeNormalized = Math.min(totalStudyMin / 480, 1) * 100;
+                        const focusScore = avgFocusRate ? Number(avgFocusRate) * 100 : 50;
+                        score = achievementPct * 0.5 + studyTimeNormalized * 0.3 + focusScore * 0.2;
+                    }
+                } catch {
+                    // sp_daily_score 테이블이 없으면 기존 공식 사용
+                    const studyTimeNormalized = Math.min(totalStudyMin / 480, 1) * 100;
+                    const focusScore = avgFocusRate ? Number(avgFocusRate) * 100 : 50;
+                    score = achievementPct * 0.5 + studyTimeNormalized * 0.3 + focusScore * 0.2;
+                }
 
                 // 5. 스냅샷 저장 (upsert)
                 await this.prisma.dailySnapshot.upsert({

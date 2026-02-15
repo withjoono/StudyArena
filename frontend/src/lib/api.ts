@@ -39,6 +39,7 @@ export const arenaApi = {
     joinArena: (inviteCode: string) =>
         api.post('/arena/join', { inviteCode }),
     leaveArena: (id: number) => api.delete(`/arena/${id}/leave`),
+    getMyMembership: (id: number) => api.get(`/arena/${id}/membership`),
 };
 
 // Leaderboard API
@@ -97,6 +98,8 @@ export const growthApi = {
         api.get('/growth/ranking', { params: { arenaId } }),
     calculate: (previousGrade: number, currentGrade: number) =>
         api.get('/growth/calculate', { params: { previousGrade, currentGrade } }),
+    getStreak: (memberId: number, arenaId: number) =>
+        api.get('/growth/streak', { params: { memberId, arenaId } }),
 };
 
 // Ranking API (Redis-backed)

@@ -1,6 +1,3 @@
-// StudyArena Prisma Schema
-// Hub 공유 DB (geobukschool_dev) — 모든 테이블에 sa_ 접두사
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,10 +6,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-// ================================================================
-// StudyArena 테이블 (Hub DB 공유, sa_ 접두사)
-// ================================================================
 
 /// 아레나 클래스 (반/그룹)
 model Arena {
@@ -38,23 +31,39 @@ model Arena {
 
 /// 아레나 멤버십 (학생-클래스 연결)
 model ArenaMember {
-  id          BigInt   @id @default(autoincrement())
-  arenaId     BigInt   @map("arena_id")
-  studentId   BigInt   @map("student_id")
-  hubMemberId BigInt?  @map("hub_member_id")
-  role        String   @default("member") @db.VarChar(20)
-  joinedAt    DateTime @default(now()) @map("joined_at")
-  isActive    Boolean  @default(true) @map("is_active")
+  id           BigInt   @id @default(autoincrement())
+  arenaId      BigInt   @map("arena_id")
+  studentId    BigInt   @map("student_id")
+  hubMemberId  BigInt?  @map("hub_member_id")
+  authMemberId String?  @map("auth_member_id") @db.VarChar(50) // sa_{hubMemberId}
+  role         String   @default("member") @db.VarChar(20)
+  joinedAt     DateTime @default(now()) @map("joined_at")
+  isActive     Boolean  @default(true) @map("is_active")
 
   // Relations
-  arena     Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
-  snapshots DailySnapshot[]
+  arena      Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  authMember AuthMember?     @relation(fields: [authMemberId], references: [id])
+  snapshots  DailySnapshot[]
 
   @@unique([arenaId, studentId], name: "uk_sa_arena_member")
   @@index([arenaId], name: "idx_sa_member_arena")
   @@index([studentId], name: "idx_sa_member_student")
   @@index([hubMemberId], name: "idx_sa_member_hub")
+  @@index([authMemberId], name: "idx_sa_member_auth")
   @@map("sa_arena_member")
+}
+
+/// 통합 인증 멤버 (Hub SSO 연동)
+model AuthMember {
+  id        String   @id @db.VarChar(50) // sa_{hubMemberId}
+  hubId     BigInt   @unique @map("hub_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  lastLogin DateTime @default(now()) @map("last_login")
+
+  // Relations
+  arenaMembers ArenaMember[]
+
+  @@map("sa_auth_member")
 }
 
 /// 일간 학습 성과 스냅샷 (캐싱용)
@@ -180,3 +189,2006 @@ model MemberBadge {
   @@map("sa_member_badge")
 }
 
+model application_rate_history {
+  id                         Int      @id(map: "PK_af0e4736d0a20fa11826e4b5dfe") @default(autoincrement())
+  university_code            String   @db.VarChar(20)
+  university_name            String   @db.VarChar(100)
+  department_name            String   @db.VarChar(400)
+  admission_type             String?  @db.VarChar(300)
+  recruitment_count          Int      @default(0)
+  application_count          Int      @default(0)
+  previous_application_count Int      @default(0)
+  competition_rate           Decimal  @default(0) @db.Decimal(10, 2)
+  previous_competition_rate  Decimal  @default(0) @db.Decimal(10, 2)
+  change_amount              Int      @default(0)
+  recorded_at                DateTime @db.Timestamp(6)
+  created_at                 DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([university_code, department_name, recorded_at], map: "IDX_16eb0dabe2e12bf5c707e6930f")
+}
+
+model application_rates {
+  id                Int      @id(map: "PK_1e53735b8b8b2f8c238d0b7406d") @default(autoincrement())
+  university_code   String   @db.VarChar(20)
+  university_name   String   @db.VarChar(100)
+  department_name   String   @db.VarChar(400)
+  admission_type    String?  @db.VarChar(300)
+  recruitment_count Int      @default(0)
+  application_count Int      @default(0)
+  competition_rate  Decimal  @default(0) @db.Decimal(10, 2)
+  source_url        String   @db.VarChar(500)
+  crawled_at        DateTime @db.Timestamp(6)
+  created_at        DateTime @default(now()) @db.Timestamp(6)
+  updated_at        DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([university_code, department_name, admission_type], map: "IDX_4fb8e4e277acf2b31d0dd6c75d")
+}
+
+model auth_member {
+  id                    String          @id @db.VarChar(30)
+  email                 String          @db.VarChar(500)
+  password              String?         @db.VarChar(500)
+  role_type             String?         @db.VarChar(500)
+  phone                 String?         @db.VarChar(255)
+  ck_sms                String?         @db.Bit(1)
+  ck_sms_agree          String?         @db.Bit(1)
+  nickname              String?         @db.VarChar(255)
+  member_type           String?         @db.VarChar(20)
+  profile_image_url     String?         @db.VarChar(4000)
+  provider_type         String?         @db.VarChar(20)
+  oauth_id              String?         @db.VarChar(500)
+  account_stop_yn       String?         @db.VarChar(1)
+  create_dt             DateTime?       @db.Timestamp(6)
+  update_dt             DateTime?       @db.Timestamp(6)
+  firebase_uid          String?         @db.VarChar(128)
+  user_type_code        String?         @db.VarChar(5)
+  user_type_detail_code String?         @db.VarChar(5)
+  reg_year              Int?
+  reg_month             String?         @db.VarChar(2)
+  reg_day               String?         @db.VarChar(2)
+  auth_member_p         auth_member_p?
+  auth_member_s         auth_member_s?
+  auth_member_t         auth_member_t?
+  eh_auth_member        eh_auth_member?
+  js_auth_member        js_auth_member?
+  payment_order         payment_order[]
+  pl_auth_member        pl_auth_member?
+
+  ss_auth_member        ss_auth_member?
+  tb_auth_member        tb_auth_member?
+
+  @@index([email, phone, oauth_id], map: "idx_auth_member_email_phone_oauth")
+}
+
+model auth_member_p {
+  member_id   String      @id @db.VarChar(30)
+  parent_type String?     @db.VarChar(20)
+  auth_member auth_member @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model auth_member_s {
+  member_id       String      @id @db.VarChar(30)
+  school_code     String?     @db.VarChar(20)
+  school_name     String?     @db.VarChar(100)
+  school_location String?     @db.VarChar(50)
+  school_type     String?     @db.VarChar(50)
+  school_level    String?     @db.VarChar(10)
+  grade           Int?
+  auth_member     auth_member @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model auth_member_t {
+  member_id    String      @id @db.VarChar(30)
+  school_level String?     @db.VarChar(10)
+  subject      String?     @db.VarChar(50)
+  auth_member  auth_member @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model board_board {
+  id         Int          @id(map: "PK_bd86e5e77833cf112439f9af37b") @default(autoincrement())
+  name       String       @db.VarChar(255)
+  permission String       @db.VarChar(50)
+  board_post board_post[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model board_comment {
+  id         BigInt      @id(map: "PK_95c375493b1d9cf8e945fe4bf23") @default(autoincrement())
+  content    String
+  created_at DateTime    @default(now()) @db.Timestamp(6)
+  updated_at DateTime    @default(now()) @db.Timestamp(6)
+  post_id    BigInt?
+  member_id  BigInt?
+  board_post board_post? @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_14db698bcc02be62873c7867a05")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model board_post {
+  id            BigInt          @id(map: "PK_49b58dfdcb4daf72283096609f0") @default(autoincrement())
+  title         String          @db.VarChar(255)
+  content       String
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  is_emphasized Boolean         @default(false)
+  board_id      Int?
+  member_id     BigInt?
+  board_comment board_comment[]
+  board_board   board_board?    @relation(fields: [board_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_db4b5d29c8f2f635ad8903d3a55")
+}
+
+model earlyd_subject_code_list_tb {
+  id                Int      @id @default(autoincrement())
+  main_subject_code String   @db.VarChar(500)
+  main_subject_name String   @db.VarChar(500)
+  subject_code      String   @db.VarChar(500)
+  subject_name      String   @db.VarChar(500)
+  type              Int?
+  course_type       Int?     @default(0) @db.SmallInt
+  is_required       Boolean? @default(false)
+}
+
+model eh_auth_member {
+  eh_auth_id    String      @id @db.VarChar(30)
+  nickname      String?     @db.VarChar(255)
+  email         String?     @db.VarChar(500)
+  member_type   String?     @db.VarChar(20)
+  phone         String?     @db.VarChar(255)
+  created_at    DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at DateTime    @default(now()) @db.Timestamp(6)
+  auth_member   auth_member @relation(fields: [eh_auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_eh_auth_member_hub_member")
+}
+
+model essay_list_tb {
+  id                      Int     @id(map: "PK_370c2f3fc54ea1bce6f7750ff18") @default(autoincrement())
+  admission_series_code   String  @db.VarChar(50)
+  college_code            String  @db.VarChar(100)
+  integration_code        String  @db.VarChar(1000)
+  essay_subject           String  @db.VarChar(100)
+  essay_type              String  @db.VarChar(100)
+  examination_tendency    String  @db.VarChar(1000)
+  competition_rate        String  @db.VarChar(1000)
+  recruitment_unit        String  @db.VarChar(200)
+  rthree_etc_code         String  @db.VarChar(1000)
+  rthree_etc_flag         Int
+  rthree_region_flag      Int
+  rthree_region_info      String  @db.VarChar(1000)
+  su_nosul                String  @db.VarChar(1000)
+  susi                    String  @db.VarChar(1000)
+  type_rate               String  @db.VarChar(100)
+  type_time               String  @db.VarChar(1000)
+  admission_date          String? @db.VarChar(255)
+  admission_time          String? @db.VarChar(255)
+  common_math             Int?
+  common_science          Int?
+  cross_support           Int?
+  df_in                   Int?
+  except_nonsul           Int?
+  geometry                Int?
+  hwaone                  Int?
+  hwaonetwo               Int?
+  jiown                   Int?
+  jiowntwo                Int?
+  mulone                  Int?
+  mulonetwo               Int?
+  mun_mathen              Int?
+  pb_st                   Int?
+  sangone                 Int?
+  sangonetwo              Int?
+  science_designation     Int?
+  select_math_subject     Int?
+  select_science_subject  Int?
+  student_recruitment_num Int?
+  suone_sutwo             Int?
+
+  @@unique([college_code, admission_series_code, recruitment_unit, type_rate, essay_type], map: "unique_essay")
+}
+
+model essay_lowest_grade_list_tb {
+  id             Int     @id(map: "PK_0d7e03c21f1729878db218e2fcc") @default(autoincrement())
+  college_code   String  @db.VarChar(1000)
+  content        String  @db.VarChar(1000)
+  essay_id       BigInt?
+  lowest_cal     Int
+  lowest_count   Int
+  lowest_english Int
+  lowest_history Int
+  lowest_korean  Int
+  lowest_math    Int
+  lowest_migi    Int
+  lowest_science Int
+  lowest_society Int
+  lowest_sum     Int
+  lowest_use     Int
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model js_admission {
+  id                                            Int                                     @id(map: "PK_b4be370b1cf65298399ffffa28d") @default(autoincrement())
+  year                                          Int
+  admission_name                                String                                  @db.VarChar(30)
+  admission_type                                String                                  @db.VarChar(10)
+  general_field_name                            String                                  @db.VarChar(50)
+  detailed_fields                               String                                  @db.VarChar(100)
+  recruitment_number                            Int                                     @default(0)
+  selection_method                              String                                  @db.VarChar(50)
+  recruitment_name                              String                                  @db.VarChar(50)
+  csat_ratio                                    String                                  @db.VarChar(30)
+  school_record_ratio                           String                                  @db.VarChar(30)
+  interview_ratio                               String                                  @db.VarChar(30)
+  other_ratio                                   String                                  @db.VarChar(30)
+  score_calculation                             String?                                 @db.VarChar(100)
+  score_calculation_code                        String?                                 @db.VarChar(10)
+  csat_elements                                 String?                                 @db.VarChar(100)
+  csat_combination                              String?                                 @db.VarChar(100)
+  csat_required                                 String?                                 @db.VarChar(100)
+  csat_optional                                 String?                                 @db.VarChar(100)
+  total_score                                   Int?
+  research_subject_count                        Int?
+  korean_reflection_score                       Decimal?                                @db.Decimal(10, 5)
+  math_reflection_score                         Decimal?                                @db.Decimal(10, 5)
+  research_reflection_score                     Decimal?                                @db.Decimal(10, 5)
+  english_reflection_score                      Decimal?                                @db.Decimal(10, 5)
+  korean_history_reflection_score               Decimal?                                @db.Decimal(10, 5)
+  second_foreign_language_reflection_score      Decimal?                                @db.Decimal(10, 5)
+  min_cut                                       Decimal?                                @db.Decimal(10, 5)
+  min_cut_percent                               Decimal?                                @db.Decimal(10, 5)
+  max_cut                                       Decimal?                                @db.Decimal(10, 5)
+  max_cut_percent                               Decimal?                                @db.Decimal(10, 5)
+  risk_plus_5                                   Decimal?                                @db.Decimal(10, 5)
+  risk_plus_4                                   Decimal?                                @db.Decimal(10, 5)
+  risk_plus_3                                   Decimal?                                @db.Decimal(10, 5)
+  risk_plus_2                                   Decimal?                                @db.Decimal(10, 5)
+  risk_plus_1                                   Decimal?                                @db.Decimal(10, 5)
+  risk_minus_1                                  Decimal?                                @db.Decimal(10, 5)
+  risk_minus_2                                  Decimal?                                @db.Decimal(10, 5)
+  risk_minus_3                                  Decimal?                                @db.Decimal(10, 5)
+  risk_minus_4                                  Decimal?                                @db.Decimal(10, 5)
+  risk_minus_5                                  Decimal?                                @db.Decimal(10, 5)
+  initial_cumulative_percentile                 Decimal?                                @db.Decimal(10, 5)
+  additional_cumulative_percentile              Decimal?                                @db.Decimal(10, 5)
+  korean_elective_subject                       String?                                 @db.VarChar(40)
+  math_elective_subject                         String?                                 @db.VarChar(40)
+  math_probability_statistics_additional_points String?                                 @db.VarChar(40)
+  math_calculus_additional_points               String?                                 @db.VarChar(40)
+  math_geometry_additional_points               String?                                 @db.VarChar(40)
+  research_type                                 String?                                 @db.VarChar(40)
+  research_social_additional_points             String?                                 @db.VarChar(40)
+  research_science_additional_points            String?                                 @db.VarChar(40)
+  math_research_selection                       String?                                 @db.VarChar(40)
+  english_application_criteria                  String?                                 @db.VarChar(40)
+  english_grade_1_score                         String?                                 @db.VarChar(40)
+  english_grade_2_score                         String?                                 @db.VarChar(40)
+  english_grade_3_score                         String?                                 @db.VarChar(40)
+  english_grade_4_score                         String?                                 @db.VarChar(40)
+  english_grade_5_score                         String?                                 @db.VarChar(40)
+  english_grade_6_score                         String?                                 @db.VarChar(40)
+  english_grade_7_score                         String?                                 @db.VarChar(40)
+  english_grade_8_score                         String?                                 @db.VarChar(40)
+  english_grade_9_score                         String?                                 @db.VarChar(40)
+  english_minimum_criteria                      String?                                 @db.VarChar(50)
+  korean_history_application_criteria           String?                                 @db.VarChar(40)
+  korean_history_grade_1_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_2_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_3_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_4_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_5_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_6_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_7_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_8_score                  String?                                 @db.VarChar(40)
+  korean_history_grade_9_score                  String?                                 @db.VarChar(40)
+  korean_history_minimum_criteria               String?                                 @db.VarChar(50)
+  university_id                                 Int?
+  ss_university                                 ss_university?                          @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_82ee5a38a1c1584c3c5a29ded2a")
+  js_admission_previous_result                  js_admission_previous_result[]
+  js_user_application_combination_items         js_user_application_combination_items[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model js_admission_previous_result {
+  id                    Int           @id(map: "PK_8a65e7814c2653cef3360975bb1") @default(autoincrement())
+  year                  Int
+  min_cut               Decimal?      @db.Decimal(10, 5)
+  max_cut               Decimal?      @db.Decimal(10, 5)
+  competition_ratio     Decimal?      @db.Decimal(10, 5)
+  percent               Decimal?      @db.Decimal(10, 5)
+  recruitment_number    Int?
+  additional_pass_rank  Int?
+  converted_score_total Decimal?      @db.Decimal(10, 5)
+  percentile_50         Decimal?      @db.Decimal(10, 5)
+  percentile_70         Decimal?      @db.Decimal(10, 5)
+  regular_admission_id  Int?
+  js_admission          js_admission? @relation(fields: [regular_admission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_96b79694221fe981d4f6c1eca6a")
+}
+
+model js_auth_member {
+  js_auth_id    String      @id @db.VarChar(30)
+  nickname      String?     @db.VarChar(255)
+  email         String?     @db.VarChar(500)
+  member_type   String?     @db.VarChar(20)
+  phone         String?     @db.VarChar(255)
+  created_at    DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at DateTime    @default(now()) @db.Timestamp(6)
+  auth_member   auth_member @relation(fields: [js_auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_js_auth_member_hub_member")
+}
+
+model js_pyunggawon_month {
+  id                       Int                        @id(map: "PK_2c863a8413403b44a6e21484b89") @default(autoincrement())
+  mockexam_month           String                     @db.VarChar(50)
+  mockexam_year            String                     @db.VarChar(50)
+  js_pyunggawon_raw_score  js_pyunggawon_raw_score[]
+  js_sunung_raw_score      js_sunung_raw_score[]
+  js_sunung_standard_score js_sunung_standard_score[]
+
+  @@unique([mockexam_month, mockexam_year], map: "unique_mock_schedule")
+}
+
+model js_pyunggawon_raw_score {
+  id                  Int                  @id(map: "PK_b6ac07d38f3c7f02eb782be8177") @default(autoincrement())
+  marks_score         String               @db.VarChar(500)
+  subject_code        String               @db.VarChar(500)
+  member_id           BigInt?
+  schedule_id         Int?
+  js_pyunggawon_month js_pyunggawon_month? @relation(fields: [schedule_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_dd47aa6891d210c338094bbc534")
+
+  @@unique([subject_code, member_id, schedule_id], map: "mockexam_marks_tb_UN")
+  @@index([schedule_id], map: "FKesul5u5vlua3mvqg1jlda6xa")
+  @@index([member_id], map: "FKnxd2cq5t1ueyg5tg39s1gt10v")
+}
+
+model js_raw_to_standard {
+  id               Int    @id(map: "PK_28aa35389cb1912e019c917f149") @default(autoincrement())
+  code             String @db.VarChar(500)
+  grade            Int?
+  percentile       Float
+  raw_score_common String @db.VarChar(500)
+  raw_score_select String @db.VarChar(500)
+  standard_score   String @db.VarChar(500)
+  top_cumulative   Float
+}
+
+model js_sunung_raw_score {
+  id                  Int                  @id(map: "PK_959973d6fff0945592860372f7a") @default(autoincrement())
+  raw_score           String               @db.VarChar(500)
+  subject_code        String               @db.VarChar(500)
+  member_id           BigInt?
+  schedule_id         Int?
+  js_pyunggawon_month js_pyunggawon_month? @relation(fields: [schedule_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_428eb3410dcb002efa28d2a248b")
+
+  @@unique([subject_code, member_id, schedule_id], map: "unique_mock_raw_score")
+  @@index([schedule_id], map: "FK7u12dq9x1x8ln2t2559lcnphu")
+  @@index([member_id], map: "FKrnh66ujfb1ufu3cns2fsgllje")
+}
+
+model js_sunung_standard_score {
+  id                  Int                  @id(map: "PK_23881c84d6464543c8398c4d90e") @default(autoincrement())
+  standard_score      Int?
+  grade               Int
+  percentile          Int?
+  subject_code        String               @db.VarChar(500)
+  member_id           BigInt?
+  schedule_id         Int?
+  js_pyunggawon_month js_pyunggawon_month? @relation(fields: [schedule_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_9126222ed8818515fd611fc6ef3")
+
+  @@unique([subject_code, member_id, schedule_id], map: "unique_mock_standard_score")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model js_user_application_combination {
+  id                                    Int                                     @id(map: "PK_b1d0c34769f723063e5ae96221c") @default(autoincrement())
+  name                                  String                                  @db.VarChar(100)
+  created_at                            DateTime                                @default(now()) @db.Timestamp(6)
+  updated_at                            DateTime                                @default(now()) @db.Timestamp(6)
+  member_id                             BigInt?
+  js_user_application_combination_items js_user_application_combination_items[]
+}
+
+model js_user_application_combination_items {
+  combination_id                  Int
+  regular_admission_id            Int
+  js_user_application_combination js_user_application_combination @relation(fields: [combination_id], references: [id], onDelete: Cascade, map: "FK_039dc1be94f6e622f2dc0bbc7fc")
+  js_admission                    js_admission                    @relation(fields: [regular_admission_id], references: [id], onDelete: Cascade, map: "FK_ee4724fc6ace3f6bdc1b583f3c4")
+
+  @@id([combination_id, regular_admission_id], map: "PK_0ef610cb3c10acedf8a3634dc0a")
+  @@index([combination_id], map: "IDX_039dc1be94f6e622f2dc0bbc7f")
+  @@index([regular_admission_id], map: "IDX_ee4724fc6ace3f6bdc1b583f3c")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model js_user_calculated_scores {
+  id                     Int           @id(map: "PK_6992a2858d0e51b475418b77edb") @default(autoincrement())
+  member_id              BigInt
+  university_id          Int
+  university_name        String        @db.VarChar(100)
+  score_calculation      String        @db.VarChar(100)
+  score_calculation_code String        @db.VarChar(10)
+  major                  String        @db.VarChar(50)
+  converted_score        Decimal       @default(0) @db.Decimal(10, 5)
+  standard_score_sum     Int           @default(0)
+  optimal_score          Decimal       @default(0) @db.Decimal(10, 5)
+  score_difference       Decimal       @default(0) @db.Decimal(10, 5)
+  calculated_at          DateTime?     @db.Timestamp(6)
+  created_at             DateTime      @default(now()) @db.Timestamp(6)
+  updated_at             DateTime      @default(now()) @db.Timestamp(6)
+  ss_university          ss_university @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_4ebc18bace3e3b3ae94085cfb85")
+
+  @@unique([member_id, university_id, score_calculation_code], map: "IDX_d670879f905887119eead575a7")
+  @@index([member_id], map: "IDX_10ba97ef5c7898ac224120727d")
+}
+
+model js_user_university_interest {
+  id             Int      @id(map: "PK_cf3e8d4213d1448ba4724d60386") @default(autoincrement())
+  member_id      BigInt
+  admission_type String   @db.VarChar(50)
+  target_id      BigInt
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+}
+
+model mc_attendance {
+  id         BigInt    @id(map: "PK_0465c57f61243b68586e3bde3b0") @default(autoincrement())
+  member_id  BigInt
+  date       DateTime  @db.Date
+  check_in   DateTime? @db.Time(6)
+  check_out  DateTime? @db.Time(6)
+  status     String    @default("present") @db.VarChar(20)
+  note       String?
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @default(now()) @db.Timestamp(6)
+}
+
+model mc_consultation {
+  id         BigInt    @id(map: "PK_a26d450c45ce89d4a1c53dc3761") @default(autoincrement())
+  member_id  BigInt
+  date       DateTime  @db.Date
+  type       String    @db.VarChar(20)
+  mentor     String?   @db.VarChar(100)
+  mentor_id  BigInt?
+  summary    String?
+  next_date  DateTime? @db.Date
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @default(now()) @db.Timestamp(6)
+}
+
+model mc_health_record {
+  id               BigInt   @id(map: "PK_4588318091037852f907472c66a") @default(autoincrement())
+  member_id        BigInt
+  date             DateTime @db.Date
+  sleep_hours      Decimal? @db.Decimal(3, 1)
+  meal_count       Int?
+  exercise_minutes Int?
+  mood             String?  @db.VarChar(20)
+  note             String?
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+}
+
+model mc_test {
+  id             BigInt   @id(map: "PK_96ca040897567f0ddf9b389d3a7") @default(autoincrement())
+  member_id      BigInt
+  title          String   @db.VarChar(200)
+  subject        String?  @db.VarChar(100)
+  date           DateTime @db.Date
+  score          Decimal? @db.Decimal(5, 2)
+  total_score    Decimal  @default(100) @db.Decimal(5, 2)
+  rank           Int?
+  total_students Int?
+  status         String   @default("pending") @db.VarChar(20)
+  note           String?
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+}
+
+model member_upload_file_list_tb {
+  id        BigInt   @id(map: "PK_d855d4bf2acabbe0b18301419b9") @default(autoincrement())
+  create_dt DateTime @default(now()) @db.Timestamp(6)
+  file_key  String   @db.VarChar(500)
+  file_name String   @db.VarChar(500)
+  file_path String   @db.VarChar(500)
+  file_size Int?
+  file_type String   @db.VarChar(500)
+  member_id BigInt
+  update_dt DateTime @default(now()) @db.Timestamp(6)
+}
+
+model ms_auth_member {
+  id              BigInt    @id @default(autoincrement())
+  hub_member_id   BigInt    @unique(map: "idx_ms_auth_member_hub_member_id")
+  nickname        String?   @db.VarChar(255)
+  email           String?   @db.VarChar(500)
+  member_type     String?   @default("student") @db.VarChar(20)
+  graduate_year   String?   @db.VarChar(10)
+  major           String?   @db.VarChar(10)
+  hst_type_id     String?   @db.VarChar(20)
+  account_stop_yn String?   @default("N") @db.VarChar(1)
+  create_dt       DateTime? @db.Timestamp(6)
+  update_dt       DateTime? @db.Timestamp(6)
+}
+
+model notification_logs {
+  id            BigInt    @id @default(autoincrement())
+  member_id     String    @db.VarChar(30)
+  type_code     String    @db.VarChar(50)
+  channel       String    @db.VarChar(20)
+  title         String    @db.VarChar(255)
+  content       String
+  status        String    @default("pending") @db.VarChar(20)
+  sent_at       DateTime? @db.Timestamp(6)
+  error_message String?
+  retry_count   Int       @default(0)
+  metadata      String?
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([member_id, created_at], map: "idx_notification_logs_member_created")
+  @@index([status], map: "idx_notification_logs_status")
+  @@index([type_code], map: "idx_notification_logs_type_code")
+}
+
+model officer_bottom_survey_tb {
+  id               Int     @id(map: "PK_255399b38ac82bed4b0e2068032") @default(autoincrement())
+  evaluate_content String  @db.VarChar(500)
+  order_num        Int?
+  main_category    String? @db.VarChar(50)
+  middle_category  String? @db.VarChar(100)
+  main_survey_type String? @db.VarChar(20)
+}
+
+model officer_comment_list_tb {
+  id                  Int    @id(map: "PK_e5fac60658c4d5fbe11920d05fd") @default(autoincrement())
+  comment             String @db.VarChar(7000)
+  main_survey_type    String @db.VarChar(255)
+  officer_relation_id BigInt
+
+  @@unique([main_survey_type, officer_relation_id], map: "officer_comment_list_tb_UN")
+}
+
+model officer_list_tb {
+  id                    BigInt    @id(map: "PK_531cef8bd10e2d7b9805e1a9fb9") @default(autoincrement())
+  approval_status       Int
+  create_dt             DateTime? @db.Timestamp(6)
+  del_yn                String?   @db.VarChar(255)
+  education             String?   @db.VarChar(500)
+  officer_apply_file    String?   @db.VarChar(500)
+  officer_name          String?   @db.VarChar(500)
+  officer_profile_image String?   @db.VarChar(500)
+  reject_reason         String?   @db.VarChar(500)
+  university            String?   @db.VarChar(500)
+  update_dt             DateTime? @db.Timestamp(6)
+  member_id             BigInt?
+}
+
+model officer_scoring_tb {
+  id                  Int     @id(map: "PK_3cf383c4f8a62083a56575481f3") @default(autoincrement())
+  bottom_survey_id    BigInt?
+  officer_relation_id BigInt
+  score               Int
+
+  @@unique([bottom_survey_id, officer_relation_id], map: "officer_scoring_tb_UN")
+}
+
+model officer_student_evaludate_relation_tb {
+  id         Int       @id(map: "PK_488eb9bde60a4535d60c65e1479") @default(autoincrement())
+  create_dt  DateTime? @default(now()) @db.Timestamp(6)
+  member_id  BigInt
+  series     String    @db.VarChar(500)
+  status     String    @db.VarChar(500)
+  student_id BigInt
+  update_dt  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([student_id, member_id], map: "unique_mock2")
+}
+
+model officer_ticket_tb {
+  id           BigInt @id(map: "PK_f5cb8ced0e955317d8c794f0d31") @default(autoincrement())
+  member_id    BigInt
+  ticket_count Int    @default(0)
+}
+
+model payment_cancel_log {
+  id            BigInt    @id @default(autoincrement())
+  cancel_reason String?   @db.VarChar(500)
+  code          String    @db.VarChar(500)
+  fail_reason   String?   @db.VarChar(500)
+  imp_uid       String    @db.VarChar(500)
+  merchant_uid  String    @db.VarChar(500)
+  pay_amount    String    @db.VarChar(500)
+  pay_method    String?   @db.VarChar(500)
+  result_msg    String?   @db.VarChar(500)
+  status        String?   @db.VarChar(500)
+  create_dt     DateTime? @db.Timestamp(6)
+  update_dt     DateTime? @db.Timestamp(6)
+}
+
+model payment_contract {
+  id                     BigInt    @id @default(autoincrement())
+  contract_period_end_dt DateTime  @db.Timestamp(6)
+  contract_start_dt      DateTime  @db.Timestamp(6)
+  contract_use           Int?
+  create_dt              DateTime? @db.Timestamp(6)
+  product_code           String    @db.VarChar(200)
+  regular_contract_fl    Boolean
+  update_dt              DateTime? @db.Timestamp(6)
+  member_id              String?   @db.VarChar(30)
+  order_id               BigInt?
+}
+
+model payment_coupon {
+  id                  BigInt  @id @default(autoincrement())
+  coupon_number       String  @db.VarChar(500)
+  discount_info       String  @db.VarChar(500)
+  discount_value      Int
+  number_of_available Int?    @default(0)
+  pay_service_id      BigInt?
+}
+
+model payment_order {
+  id              BigInt           @id @default(autoincrement())
+  cancel_amount   Int?             @default(0)
+  emb_pg_provider String?          @db.VarChar(500)
+  card_name       String?          @db.VarChar(500)
+  card_number     String?          @db.VarChar(500)
+  contract_id     BigInt?
+  create_dt       DateTime?        @db.Timestamp(6)
+  imp_uid         String?          @unique(map: "uk_gnwosnxtfwcpt1acvc9c1t1vf") @db.VarChar(500)
+  member_id       String?          @db.VarChar(30)
+  merchant_uid    String?          @unique(map: "uk_4c9pqmv7an15g602u8wa6dje") @db.VarChar(500)
+  order_state     String           @db.VarChar(20)
+  paid_amount     Int?
+  update_dt       DateTime?        @db.Timestamp(6)
+  vbank_code      String?          @db.VarChar(500)
+  vbank_name      String?          @db.VarChar(500)
+  pay_service_id  BigInt?
+  auth_member     auth_member?     @relation(fields: [member_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_service payment_service? @relation(fields: [pay_service_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model payment_product {
+  id           BigInt @id @default(autoincrement())
+  product_name String @db.VarChar(500)
+  product_code String @unique @db.VarChar(500)
+  product_type String @db.VarChar(500)
+}
+
+model payment_service {
+  id                   BigInt          @id @default(autoincrement())
+  create_dt            DateTime?       @db.Timestamp(6)
+  explain_comment      String?         @db.VarChar(3000)
+  product_image        String?         @db.VarChar(3000)
+  product_nm           String          @unique(map: "uk_pk3sdbagrh1cdo8jk2oog4g0v") @db.VarChar(500)
+  product_payment_type String?         @db.VarChar(500)
+  product_price        String          @db.VarChar(500)
+  promotion_discount   Float?          @default(0)
+  term                 DateTime?       @db.Timestamp(6)
+  update_dt            DateTime?       @db.Timestamp(6)
+  refund_policy        String?         @db.VarChar(1000)
+  delete_flag          Int?            @default(0)
+  product_cate_code    String?         @db.VarChar(45)
+  product_type_code    String?         @db.VarChar(45)
+  service_range_code   String?         @db.VarChar(45)
+  available_count      Int?
+  available_term       String?         @db.VarChar(45)
+  payment_order        payment_order[]
+}
+
+model payment_service_product {
+  id             BigInt @id @default(autoincrement())
+  pay_service_id BigInt
+  pay_product_id BigInt
+}
+
+model pl_auth_member {
+  pl_auth_id    String      @id @db.VarChar(30)
+  nickname      String?     @db.VarChar(255)
+  email         String?     @db.VarChar(500)
+  member_type   String?     @db.VarChar(20)
+  phone         String?     @db.VarChar(255)
+  created_at    DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at DateTime    @default(now()) @db.Timestamp(6)
+  auth_member   auth_member @relation(fields: [pl_auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pl_auth_member_hub_member")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model series_evaluation_criteria_humanities {
+  id                      Int     @id(map: "PK_5bc329a4f0ab2433791fd5d23a3") @default(autoincrement())
+  level                   Int
+  university_category     String  @db.VarChar(100)
+  korean                  Decimal @db.Decimal(3, 1)
+  english                 Decimal @db.Decimal(3, 1)
+  math                    Decimal @db.Decimal(3, 1)
+  social                  Decimal @db.Decimal(3, 1)
+  second_foreign_language Decimal @db.Decimal(3, 1)
+  overall_grade_range     String? @db.VarChar(20)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model series_evaluation_criteria_science {
+  id                  Int     @id(map: "PK_912d76efa5fedf8a56988a5720a") @default(autoincrement())
+  level               Int
+  university_category String  @db.VarChar(100)
+  statistics          Decimal @db.Decimal(3, 1)
+  calculus            Decimal @db.Decimal(3, 1)
+  geometry            Decimal @db.Decimal(3, 1)
+  ai_math             Decimal @db.Decimal(3, 1)
+  physics1            Decimal @db.Decimal(3, 1)
+  physics2            Decimal @db.Decimal(3, 1)
+  chemistry1          Decimal @db.Decimal(3, 1)
+  chemistry2          Decimal @db.Decimal(3, 1)
+  biology1            Decimal @db.Decimal(3, 1)
+  biology2            Decimal @db.Decimal(3, 1)
+  earth_science1      Decimal @db.Decimal(3, 1)
+  earth_science2      Decimal @db.Decimal(3, 1)
+}
+
+model sgb_attendance {
+  id                       Int     @id(map: "PK_1fd2463763e1e077bd274e6bbe2") @default(autoincrement())
+  absent_disease           Int?
+  absent_etc               Int?
+  absent_unrecognized      Int?
+  class_days               Int?
+  etc                      String?
+  grade                    String? @db.VarChar(1000)
+  late_disease             Int?
+  late_etc                 Int?
+  late_unrecognized        Int?
+  leave_early_disease      Int?
+  leave_early_etc          Int?
+  leave_early_unrecognized Int?
+  result_disease           Int?
+  result_early_etc         Int?
+  result_unrecognized      Int?
+  member_id                String? @db.VarChar(255)
+}
+
+model sgb_select_subject {
+  id                  Int     @id(map: "PK_25e639969802240c46494defa26") @default(autoincrement())
+  achievement         String?
+  achievementa        String?
+  achievementb        String?
+  achievementc        String?
+  etc                 String?
+  grade               String?
+  main_subject_code   String?
+  main_subject_name   String
+  raw_score           String?
+  semester            String?
+  students_num        String?
+  sub_subject_average String?
+  subject_code        String?
+  subject_name        String
+  unit                String?
+  member_id           String? @db.VarChar(255)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sgb_sport_art {
+  id          BigInt  @id(map: "PK_5217bf1097aa691f68f569eade4") @default(autoincrement())
+  achievement String?
+  etc         String?
+  grade       String?
+  semester    String?
+  sub_subject String?
+  subject     String?
+  unit        String?
+  member_id   String? @db.VarChar(255)
+}
+
+model sgb_subject_learning {
+  id                  Int     @id(map: "PK_9a324ad0ae684a88c3fba86fb40") @default(autoincrement())
+  achievement         String? @db.VarChar(1000)
+  etc                 String? @db.VarChar(1000)
+  grade               String? @db.VarChar(1000)
+  main_subject_code   String? @db.VarChar(1000)
+  main_subject_name   String  @db.VarChar(1000)
+  ranking             String? @db.VarChar(1000)
+  raw_score           String? @db.VarChar(1000)
+  semester            String? @db.VarChar(1000)
+  standard_deviation  String? @db.VarChar(1000)
+  students_num        String? @db.VarChar(1000)
+  sub_subject_average String? @db.VarChar(1000)
+  subject_code        String? @db.VarChar(1000)
+  subject_name        String? @db.VarChar(1000)
+  unit                String? @db.VarChar(1000)
+  member_id           String? @db.VarChar(255)
+}
+
+model sgb_volunteer {
+  id               Int     @id(map: "PK_85129ed1bfd8a15fad876ccb877") @default(autoincrement())
+  accumulate_time  String? @db.VarChar(1000)
+  activity_content String? @db.VarChar(1000)
+  activity_time    String? @db.VarChar(1000)
+  date             String? @db.VarChar(1000)
+  grade            String? @db.VarChar(1000)
+  place            String? @db.VarChar(1000)
+  member_id        String? @db.VarChar(255)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_admission {
+  id                             Int                              @id(map: "PK_acda06d17891335a7e3400ff02a") @default(autoincrement())
+  name                           String                           @db.VarChar(100)
+  year                           Int
+  basic_type                     ss_admission_basic_type_enum
+  university_id                  Int?
+  category_id                    Int?
+  ss_admission_category          ss_admission_category?           @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_84dacf5b72416ae8dbe1f253e78")
+  ss_university                  ss_university?                   @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d88fb4866aaf6a8705167aa0610")
+  ss_admission_method            ss_admission_method?
+  ss_admission_subtype_relations ss_admission_subtype_relations[]
+  ss_recruitment_unit            ss_recruitment_unit[]
+
+  @@unique([name, year, university_id, category_id], map: "uk_ts_admissions_name_year_university_category")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_admission_category {
+  id           Int            @id(map: "PK_84dacf5b72416ae8dbe1f253e78") @default(autoincrement())
+  name         String         @unique(map: "UQ_ebbf32ed42552ae78b80cdc0595") @db.VarChar(50)
+  ss_admission ss_admission[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_admission_method {
+  id                                Int           @id(map: "PK_9658f580f613fb9fd48f087c8ba") @default(autoincrement())
+  method_description                String        @db.VarChar(255)
+  subject_ratio                     Decimal?      @db.Decimal(5, 2)
+  document_ratio                    Decimal?      @db.Decimal(5, 2)
+  interview_ratio                   Decimal?      @db.Decimal(5, 2)
+  practical_ratio                   Decimal?      @db.Decimal(5, 2)
+  other_details                     String?
+  second_stage_first_ratio          Decimal?      @db.Decimal(5, 2)
+  second_stage_interview_ratio      Decimal?      @db.Decimal(5, 2)
+  second_stage_other_ratio          Decimal?      @db.Decimal(5, 2)
+  second_stage_other_details        String?
+  eligibility                       String
+  school_record_evaluation_score    String?       @db.VarChar(100)
+  school_record_evaluation_elements String?       @db.VarChar(100)
+  admission_id                      Int?          @unique(map: "REL_0d2884bfaafb78ac08b4b4818f")
+  ss_admission                      ss_admission? @relation(fields: [admission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_0d2884bfaafb78ac08b4b4818fd")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_admission_subtype {
+  id                             Int                              @id(map: "PK_d70316b32090058320bd9d3564c") @default(autoincrement())
+  name                           String                           @unique(map: "UQ_cf27b93fb946d93d2f9a6d87e6f") @db.VarChar(100)
+  code                           String?                          @db.VarChar(10)
+  category_id                    Int?
+  ss_admission_subtype_category  ss_admission_subtype_category?   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_94271c6e2345168c81eb0acfa43")
+  ss_admission_subtype_relations ss_admission_subtype_relations[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_admission_subtype_category {
+  id                   Int                    @id(map: "PK_94271c6e2345168c81eb0acfa43") @default(autoincrement())
+  name                 String                 @unique(map: "UQ_76614b3f7b41162535067d1a2e9") @db.VarChar(100)
+  display_order        Int                    @default(0)
+  ss_admission_subtype ss_admission_subtype[]
+}
+
+model ss_admission_subtype_relations {
+  admission_id         Int
+  subtype_id           Int
+  ss_admission_subtype ss_admission_subtype @relation(fields: [subtype_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_68aefeef058f08ef2b5544a022b")
+  ss_admission         ss_admission         @relation(fields: [admission_id], references: [id], onDelete: Cascade, map: "FK_e1e45de32abeaae11c9110a1c34")
+
+  @@id([admission_id, subtype_id], map: "PK_d04916f5bfd7436500a2ea9ac4e")
+  @@index([subtype_id], map: "IDX_68aefeef058f08ef2b5544a022")
+  @@index([admission_id], map: "IDX_e1e45de32abeaae11c9110a1c3")
+}
+
+model ss_auth_member {
+  ss_auth_id    String      @id @db.VarChar(30)
+  nickname      String?     @db.VarChar(255)
+  email         String?     @db.VarChar(500)
+  member_type   String?     @db.VarChar(20)
+  phone         String?     @db.VarChar(255)
+  created_at    DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at DateTime    @default(now()) @db.Timestamp(6)
+  auth_member   auth_member @relation(fields: [ss_auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ss_auth_member_hub_member")
+}
+
+model ss_category_subject_necessity {
+  id               String   @id(map: "PK_c6b9bd50c177e5bba2b7eae94bb") @db.VarChar(100)
+  category_id      String   @db.VarChar(20)
+  major_field      String   @db.VarChar(50)
+  major_field_code Int
+  mid_field        String   @db.VarChar(50)
+  mid_field_code   Int
+  minor_field      String   @db.VarChar(100)
+  minor_field_code Int
+  subject_name     String   @db.VarChar(50)
+  necessity_level  Int
+  subject_type     String   @db.VarChar(20)
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([category_id, subject_name], map: "IDX_14bf197322ebd3ca09a9c39548")
+  @@index([minor_field_code, subject_name], map: "IDX_5bba8c2707f5c157d4d579c197")
+  @@index([mid_field_code, subject_name], map: "IDX_8f6a723c92aaa8b7f202fa591a")
+  @@index([category_id], map: "IDX_9f6791d742201bb2a519931cc8")
+  @@index([major_field_code, subject_name], map: "IDX_cbbed2900999a176dd7005d919")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_general_field {
+  id                  Int                   @id(map: "PK_65ecd1793120722721124629204") @default(autoincrement())
+  name                String                @unique(map: "UQ_3ea254d1d6f36c9b4bce6048773") @db.VarChar(50)
+  ss_recruitment_unit ss_recruitment_unit[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_major_field {
+  id           Int            @id(map: "PK_3a57079407f9130c49b42e07395") @default(autoincrement())
+  name         String         @unique(map: "UQ_463df363207f3d368566b285941") @db.VarChar(100)
+  ss_mid_field ss_mid_field[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_mid_field {
+  id             Int              @id(map: "PK_2298858694ff8d29a5790ade8ec") @default(autoincrement())
+  name           String           @db.VarChar(100)
+  major_field_id Int?
+  ss_major_field ss_major_field?  @relation(fields: [major_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_a865e83fcac21e47c2b55de1a08")
+  ss_minor_field ss_minor_field[]
+
+  @@unique([name, major_field_id], map: "uk_ts_mid_fields_name_major_field")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_minor_field {
+  id                  Int                   @id(map: "PK_c2843042614083392202d6cb4b9") @default(autoincrement())
+  name                String                @db.VarChar(100)
+  mid_field_id        Int?
+  ss_mid_field        ss_mid_field?         @relation(fields: [mid_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_085bb6824c89a4bfa5a6f8fd43e")
+  ss_recruitment_unit ss_recruitment_unit[]
+
+  @@unique([name, mid_field_id], map: "uk_ts_minor_fields_name_mid_field")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit {
+  id                                         Int                                          @id(map: "PK_8515485cb08ee6800d56a0438cb") @default(autoincrement())
+  name                                       String                                       @db.VarChar(100)
+  recruitment_number                         Int?
+  code                                       String?                                      @db.VarChar(20)
+  admission_id                               Int?
+  general_field_id                           Int?
+  minor_field_id                             Int?
+  ss_general_field                           ss_general_field?                            @relation(fields: [general_field_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_22d89140c9ca0edfa09ecb95d86")
+  ss_admission                               ss_admission?                                @relation(fields: [admission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_5343b79445d46d3aea40f19a50b")
+  ss_minor_field                             ss_minor_field?                              @relation(fields: [minor_field_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_acc43b4140f517ae957d0baf491")
+  ss_recruitment_unit_interview              ss_recruitment_unit_interview?
+  ss_recruitment_unit_minimum_grade          ss_recruitment_unit_minimum_grade?
+  ss_recruitment_unit_pass_fail_record       ss_recruitment_unit_pass_fail_record[]
+  ss_recruitment_unit_previous_result        ss_recruitment_unit_previous_result[]
+  ss_recruitment_unit_score                  ss_recruitment_unit_score[]
+  ss_user_recruitment_unit_combination_items ss_user_recruitment_unit_combination_items[]
+
+  @@unique([admission_id, name], map: "uk_recruitment_admission_name")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit_interview {
+  id                  Int                  @id(map: "PK_ba79f57b754a3c2f30c10c8ecb1") @default(autoincrement())
+  is_reflected        Boolean              @default(false)
+  interview_type      String?              @db.VarChar(100)
+  materials_used      String?              @db.VarChar(255)
+  interview_process   String?              @db.VarChar(255)
+  evaluation_content  String?
+  interview_date      String?              @db.VarChar(100)
+  interview_time      String?              @db.VarChar(100)
+  recruitment_unit_id Int?                 @unique(map: "REL_144f1cfb17fa9e24c955beb8cb")
+  ss_recruitment_unit ss_recruitment_unit? @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_144f1cfb17fa9e24c955beb8cb5")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit_minimum_grade {
+  id                  Int                                               @id(map: "PK_02e1c0d81bf86b31ae6f945095c") @default(autoincrement())
+  is_applied          ss_recruitment_unit_minimum_grade_is_applied_enum
+  description         String?
+  recruitment_unit_id Int?                                              @unique(map: "REL_348eb6b3c00c015cda490cd5aa")
+  ss_recruitment_unit ss_recruitment_unit?                              @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_348eb6b3c00c015cda490cd5aa6")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit_pass_fail_record {
+  id                  Int                  @id(map: "PK_72fdafa85f42f9a780327030d32") @default(autoincrement())
+  first_result        String?              @db.VarChar(5)
+  final_result        String?              @db.VarChar(5)
+  avg_grade_all       Decimal?             @db.Decimal(5, 2)
+  avg_grade_gyss      Decimal?             @db.Decimal(5, 2)
+  avg_grade_gysg      Decimal?             @db.Decimal(5, 2)
+  avg_grade_gyst_100  Decimal?             @db.Decimal(5, 2)
+  avg_grade_gyst      Decimal?             @db.Decimal(5, 2)
+  recruitment_unit_id Int?
+  ss_recruitment_unit ss_recruitment_unit? @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_abf725b54b298301f1ae1d3dbd1")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit_previous_result {
+  id                  Int                  @id(map: "PK_58145ce3ccd2597751ea5f6e912") @default(autoincrement())
+  year                Int
+  result_criteria     String               @db.VarChar(100)
+  grade_cut           Decimal?             @db.Decimal(10, 5)
+  converted_score_cut Decimal?             @db.Decimal(10, 5)
+  competition_ratio   Decimal?             @db.Decimal(10, 5)
+  recruitment_number  Int?
+  recruitment_unit_id Int?
+  ss_recruitment_unit ss_recruitment_unit? @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_48fddfa29f19694c87a0ce93e5c")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_unit_score {
+  id                  Int                  @id(map: "PK_599c949c2953397be2f74e117e9") @default(autoincrement())
+  grade_50_cut        Decimal?             @db.Decimal(10, 5)
+  grade_70_cut        Decimal?             @db.Decimal(10, 5)
+  convert_50_cut      Decimal?             @db.Decimal(10, 5)
+  convert_70_cut      Decimal?             @db.Decimal(10, 5)
+  risk_plus_5         Decimal?             @db.Decimal(10, 5)
+  risk_plus_4         Decimal?             @db.Decimal(10, 5)
+  risk_plus_3         Decimal?             @db.Decimal(10, 5)
+  risk_plus_2         Decimal?             @db.Decimal(10, 5)
+  risk_plus_1         Decimal?             @db.Decimal(10, 5)
+  risk_minus_1        Decimal?             @db.Decimal(10, 5)
+  risk_minus_2        Decimal?             @db.Decimal(10, 5)
+  risk_minus_3        Decimal?             @db.Decimal(10, 5)
+  risk_minus_4        Decimal?             @db.Decimal(10, 5)
+  risk_minus_5        Decimal?             @db.Decimal(10, 5)
+  recruitment_unit_id Int?
+  ss_recruitment_unit ss_recruitment_unit? @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_8a21df6ae01986a488cfb5c4c71")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_recruitment_units {
+  id                  String   @id(map: "PK_ce6c292cb48c8573754fb691b6f") @db.VarChar(20)
+  university_name     String   @db.VarChar(100)
+  university_code     String   @db.VarChar(20)
+  admission_type      String   @db.VarChar(50)
+  admission_type_code Int
+  admission_name      String   @db.VarChar(100)
+  unit_name           String   @db.VarChar(200)
+  region              String?  @db.VarChar(50)
+  created_at          DateTime @default(now()) @db.Timestamp(6)
+  updated_at          DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_type], map: "idx_ss_ru_admission_type")
+  @@index([admission_type_code], map: "idx_ss_ru_admission_type_code")
+  @@index([region], map: "idx_ss_ru_region")
+  @@index([university_code], map: "idx_ss_ru_university_code")
+}
+
+model ss_subject_codes {
+  id                String   @id(map: "PK_0967e43f53c0eb907fe4465bfe5") @db.VarChar(20)
+  main_subject_name String   @db.VarChar(50)
+  main_subject_code String   @db.VarChar(20)
+  course_type_name  String   @db.VarChar(50)
+  course_type_code  Int
+  subject_name      String   @db.VarChar(100)
+  subject_code      Int
+  evaluation_type   String   @db.VarChar(20)
+  created_at        DateTime @default(now()) @db.Timestamp(6)
+  updated_at        DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([main_subject_code, subject_code], map: "IDX_34cfbe12ec07d4df66b1cf4060")
+  @@index([main_subject_code], map: "IDX_884631964cf5eb33ec32096f59")
+  @@index([course_type_code], map: "IDX_f744c0d2847243eed22917cc73")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_unit_categories {
+  id               String   @id(map: "PK_ba5d84f32bcd04151e320a8905d") @db.VarChar(20)
+  field_code       String   @db.VarChar(10)
+  major_field      String   @db.VarChar(50)
+  major_field_code Int
+  mid_field        String   @db.VarChar(50)
+  mid_field_code   Int
+  minor_field      String   @db.VarChar(100)
+  minor_field_code Int
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([major_field_code], map: "idx_ss_uc_major_field")
+  @@index([mid_field_code], map: "idx_ss_uc_mid_field")
+  @@index([minor_field_code], map: "idx_ss_uc_minor_field")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_university {
+  id                        Int                                   @id(map: "PK_bdd66601ec51e12cedb204ce828") @default(autoincrement())
+  region                    String                                @db.VarChar(50)
+  name                      String                                @db.VarChar(100)
+  code                      String                                @unique(map: "UQ_97c0e85cea2297ca57bbd787a72") @db.VarChar(20)
+  establishment_type        ss_university_establishment_type_enum
+  js_admission              js_admission[]
+  js_user_calculated_scores js_user_calculated_scores[]
+  ss_admission              ss_admission[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ss_user_application_combination {
+  id                                         Int                                          @id(map: "PK_fd673d55cd94ccd62bece9f94b0") @default(autoincrement())
+  name                                       String                                       @db.VarChar(100)
+  created_at                                 DateTime                                     @default(now()) @db.Timestamp(6)
+  updated_at                                 DateTime                                     @default(now()) @db.Timestamp(6)
+  member_id                                  BigInt?
+  ss_user_recruitment_unit_combination_items ss_user_recruitment_unit_combination_items[]
+}
+
+model ss_user_recruitment_unit_combination_items {
+  combination_id                  Int
+  recruitment_unit_id             Int
+  ss_recruitment_unit             ss_recruitment_unit             @relation(fields: [recruitment_unit_id], references: [id], onDelete: Cascade, map: "FK_2a6a3ecf130b96f97d32a12a3d2")
+  ss_user_application_combination ss_user_application_combination @relation(fields: [combination_id], references: [id], onDelete: Cascade, map: "FK_e08d3e2e4c63d7d253b44cefe23")
+
+  @@id([combination_id, recruitment_unit_id], map: "PK_3026893029df8aa42ac4867fb88")
+  @@index([recruitment_unit_id], map: "IDX_2a6a3ecf130b96f97d32a12a3d")
+  @@index([combination_id], map: "IDX_e08d3e2e4c63d7d253b44cefe2")
+}
+
+model ss_user_university_interest {
+  id            Int      @id(map: "PK_b7930c461e418cdc8bdbd80b275") @default(autoincrement())
+  member_id     BigInt
+  target_table  String   @db.VarChar(50)
+  target_id     BigInt
+  evaluation_id Int?
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_calculation_formula {
+  id                            Int      @id(map: "PK_63e92154a5525f58bf408611719") @default(autoincrement())
+  year                          Int      @default(2026)
+  university_name               String   @db.VarChar(100)
+  university_code               String?  @db.VarChar(20)
+  reflection_semesters          String?  @db.VarChar(50)
+  grade_1_ratio                 Decimal  @default(0) @db.Decimal(5, 2)
+  grade_2_ratio                 Decimal  @default(0) @db.Decimal(5, 2)
+  grade_3_ratio                 Decimal  @default(0) @db.Decimal(5, 2)
+  korean_ratio                  Decimal  @default(0) @db.Decimal(5, 2)
+  english_ratio                 Decimal  @default(0) @db.Decimal(5, 2)
+  math_ratio                    Decimal  @default(0) @db.Decimal(5, 2)
+  social_ratio                  Decimal  @default(0) @db.Decimal(5, 2)
+  science_ratio                 Decimal  @default(0) @db.Decimal(5, 2)
+  etc_ratio                     Decimal  @default(0) @db.Decimal(5, 2)
+  reflection_subject_count      Int?
+  reflection_subject_detail     String?  @db.VarChar(500)
+  grade_conversion_table        Json?
+  career_subject_conversion     String?  @db.VarChar(100)
+  career_grade_conversion_table Json?
+  attendance_score              Decimal  @default(0) @db.Decimal(5, 2)
+  attendance_deduction_rule     String?  @db.VarChar(500)
+  volunteer_score               Decimal  @default(0) @db.Decimal(5, 2)
+  volunteer_rule                String?  @db.VarChar(500)
+  max_score                     Decimal  @default(1000) @db.Decimal(10, 2)
+  remarks                       String?  @db.VarChar(500)
+  is_active                     Boolean  @default(true)
+  created_at                    DateTime @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([university_name, year], map: "IDX_15201ae823f1cbbcf886a92416")
+  @@index([year], map: "IDX_355abae20161e1e79efcd2c8ae")
+  @@index([university_name], map: "IDX_d294f86be143faaadb2ae254d0")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_comprehensive_tb {
+  id                                 Int     @id(map: "PK_329a86ea2f628cbfa21514937fc") @default(autoincrement())
+  unified_id                         String? @db.VarChar(50)
+  year                               Int?
+  region                             String? @db.VarChar(20)
+  university_name                    String? @db.VarChar(50)
+  university_code                    String? @db.VarChar(20)
+  national_or_private                String? @db.VarChar(10)
+  basic_type                         String? @db.VarChar(30)
+  detailed_type                      String? @db.VarChar(100)
+  type_name                          String? @db.VarChar(100)
+  central_classification             String? @db.VarChar(10)
+  department                         String? @db.VarChar(10)
+  recruitment_unit_name              String? @db.VarChar(100)
+  large_department                   String? @db.VarChar(50)
+  medium_department                  String? @db.VarChar(50)
+  small_department                   String? @db.VarChar(50)
+  recruitment_number                 String? @db.VarChar(30)
+  selection_model                    String? @db.VarChar(30)
+  selection_ratio                    String? @db.VarChar(30)
+  selection_method                   String? @db.VarChar(80)
+  document_rate                      Int?
+  interview_rate                     Int?
+  other_rate                         Int?
+  other_details                      String?
+  step2_step1_score_rate             Int?
+  step2_interview_rate               Int?
+  step2_other_rate                   Int?
+  step2_other_details                String?
+  application_eligibility_text       String?
+  cut_50                             String? @db.VarChar(50)
+  cut_70                             String? @db.VarChar(50)
+  risk_level_plus5                   Float?
+  risk_level_plus4                   Float?
+  risk_level_plus3                   Float?
+  risk_level_plus2                   Float?
+  risk_level_plus1                   Float?
+  risk_level_minus1                  Float?
+  risk_level_minus2                  Float?
+  risk_level_minus3                  Float?
+  risk_level_minus4                  Float?
+  risk_level_minus5                  Float?
+  minimum_academic_standards_applied Int?
+  minimum_academic_standards_text    String?
+  minimum_korean                     Int?
+  minimum_math                       Int?
+  minimum_math_science_engineering   Int?
+  minimum_english                    Int?
+  minimum_social_studies             Int?
+  minimum_science_studies            Int?
+  minimum_calculation_studies        Int?
+  minimum_count                      Int?
+  minimum_sum                        Float?
+  minimum_korean_history             Float?
+  minimum_others                     Int?
+  minimum_others_details             String?
+  additional_point                   String? @db.VarChar(50)
+  additional_point_text              String? @db.VarChar(50)
+  evaluation_ratios                  String? @db.VarChar(80)
+  evaluation_code                    String? @db.VarChar(60)
+  interview_score_applied            Int?
+  interview_type                     String? @db.VarChar(50)
+  interview_resources                String? @db.VarChar(100)
+  interview_method                   String? @db.VarChar(100)
+  interview_evaluation_content       String? @db.VarChar(100)
+  interview_date_text                String? @db.VarChar(80)
+  interview_time                     String? @db.VarChar(20)
+  admission_criteria_2024            String? @db.VarChar(120)
+  admission_2024_grade               String? @db.VarChar(80)
+  admission_2024_converted_score     String? @db.VarChar(80)
+  competition_rate_2024              String? @db.VarChar(80)
+  replenishment_2024                 String? @db.VarChar(80)
+  admission_criteria_2023            String? @db.VarChar(50)
+  admission_2023_grade               String? @db.VarChar(80)
+  admission_2023_converted_score     String? @db.VarChar(80)
+  competition_rate_2023              String? @db.VarChar(80)
+  replenishment_2023                 String? @db.VarChar(80)
+  admission_criteria_2022            String? @db.VarChar(50)
+  admission_2022_grade               String? @db.VarChar(80)
+  competition_rate_2022              String? @db.VarChar(80)
+  replenishment_2022                 String? @db.VarChar(80)
+  admission_2021_grade               String? @db.VarChar(80)
+  competition_rate_2021              String? @db.VarChar(80)
+  replenishment_2021                 String? @db.VarChar(80)
+  admission_2020_grade               String? @db.VarChar(80)
+  competition_rate_2020              String? @db.VarChar(80)
+  replenishment_2020                 String? @db.VarChar(80)
+  application_notes                  String? @db.VarChar(50)
+
+  @@index([year, basic_type, large_department, medium_department, small_department], map: "idx_year_basic_type_large_medium_small")
+}
+
+model susi_jonghap_ipkyul {
+  id                           Int      @id(map: "PK_2230fe9171666c418393c577191") @default(autoincrement())
+  ida_id                       String   @unique(map: "UQ_f6a0594c082a1dce219d8ceec66") @db.VarChar(50)
+  university_name              String?  @db.VarChar(200)
+  university_code              String?  @db.VarChar(20)
+  admission_type               String?  @db.VarChar(50)
+  admission_type_code          Int?
+  admission_detail             String?  @db.VarChar(200)
+  category                     String?  @db.VarChar(100)
+  recruitment_unit             String?  @db.VarChar(200)
+  grade_avg                    Decimal? @db.Decimal(10, 2)
+  grade_70p_cut                Decimal? @db.Decimal(10, 2)
+  grade_90p_cut                Decimal? @db.Decimal(10, 2)
+  recruitment_2023             Int?
+  competition_rate_2023        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2023    Int?
+  actual_competition_rate_2023 Decimal? @db.Decimal(10, 2)
+  grade_50p_2023               Decimal? @db.Decimal(10, 2)
+  grade_70p_2023               Decimal? @db.Decimal(10, 2)
+  recruitment_2024             Int?
+  competition_rate_2024        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2024    Int?
+  actual_competition_rate_2024 Decimal? @db.Decimal(10, 2)
+  grade_50p_2024               Decimal? @db.Decimal(10, 2)
+  grade_70p_2024               Decimal? @db.Decimal(10, 2)
+  recruitment_2025             Int?
+  competition_rate_2025        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2025    Int?
+  actual_competition_rate_2025 Decimal? @db.Decimal(10, 2)
+  grade_50p_2025               Decimal? @db.Decimal(10, 2)
+  grade_70p_2025               Decimal? @db.Decimal(10, 2)
+  recruitment_2026             Int?
+  competition_rate_2026        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2026    Int?
+  actual_competition_rate_2026 Decimal? @db.Decimal(10, 2)
+  grade_50p_2026               Decimal? @db.Decimal(10, 2)
+  grade_70p_2026               Decimal? @db.Decimal(10, 2)
+  created_at                   DateTime @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_type], map: "idx_susi_jonghap_ipkyul_admission_type")
+  @@index([university_code], map: "idx_susi_jonghap_ipkyul_university_code")
+}
+
+model susi_jonghap_recruitment {
+  id                      Int      @id(map: "PK_d711d5347af7f0a38d63c7ae70e") @default(autoincrement())
+  ida_id                  String   @unique(map: "UQ_4dc238afc606b68c46ae799ca1c") @db.VarChar(50)
+  university_name         String?  @db.VarChar(200)
+  university_code         String?  @db.VarChar(20)
+  university_type         String?  @db.VarChar(50)
+  admission_type          String?  @db.VarChar(50)
+  admission_name          String?  @db.VarChar(200)
+  category                String?  @db.VarChar(100)
+  recruitment_unit        String?  @db.VarChar(200)
+  region_major            String?  @db.VarChar(100)
+  region_detail           String?  @db.VarChar(100)
+  admission_category      String?  @db.VarChar(20)
+  special_admission_types String?  @db.VarChar(200)
+  qualification           String?
+  admission_method        String?
+  minimum_standard        String?
+  recruitment_count       Int?
+  major_field             String?  @db.VarChar(100)
+  mid_field               String?  @db.VarChar(100)
+  minor_field             String?  @db.VarChar(200)
+  created_at              DateTime @default(now()) @db.Timestamp(6)
+  updated_at              DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_type], map: "idx_susi_jonghap_recruitment_admission_type")
+  @@index([category], map: "idx_susi_jonghap_recruitment_category")
+  @@index([university_code], map: "idx_susi_jonghap_recruitment_university_code")
+}
+
+model susi_jonghap_special {
+  id                      Int      @id(map: "PK_f91748613664eb460b1c1b24028") @default(autoincrement())
+  ida_id                  String   @unique(map: "UQ_5d50df23e296fcde302437c9064") @db.VarChar(50)
+  admission_category      String?  @db.VarChar(20)
+  special_admission_types String?  @db.VarChar(200)
+  qualification_2026      String?
+  created_at              DateTime @default(now()) @db.Timestamp(6)
+  updated_at              DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_category], map: "idx_susi_jonghap_special_category")
+}
+
+model susi_kyokwa_cut {
+  id                             Int      @id(map: "PK_1e43fdb479dee499db545586c98") @default(autoincrement())
+  ida_id                         String   @unique(map: "UQ_9ac9b8358b677c94ed8a8f3480f") @db.VarChar(50)
+  grade_avg                      Decimal? @db.Decimal(10, 2)
+  grade_initial_cut              Decimal? @db.Decimal(10, 2)
+  grade_additional_cut           Decimal? @db.Decimal(10, 2)
+  converted_score_initial_cut    Decimal? @db.Decimal(10, 2)
+  converted_score_avg            Decimal? @db.Decimal(10, 2)
+  converted_score_additional_cut Decimal? @db.Decimal(10, 2)
+  converted_total_score          Decimal? @db.Decimal(10, 2)
+  recruitment_2023               Int?
+  competition_rate_2023          Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2023      Int?
+  actual_competition_rate_2023   Decimal? @db.Decimal(10, 2)
+  converted_score_50p_2023       Decimal? @db.Decimal(10, 2)
+  converted_score_70p_2023       Decimal? @db.Decimal(10, 2)
+  total_score_2023               Decimal? @db.Decimal(10, 2)
+  grade_50p_2023                 Decimal? @db.Decimal(10, 2)
+  grade_70p_2023                 Decimal? @db.Decimal(10, 2)
+  recruitment_2024               Int?
+  competition_rate_2024          Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2024      Int?
+  actual_competition_rate_2024   Decimal? @db.Decimal(10, 2)
+  converted_score_50p_2024       Decimal? @db.Decimal(10, 2)
+  converted_score_70p_2024       Decimal? @db.Decimal(10, 2)
+  total_score_2024               Decimal? @db.Decimal(10, 2)
+  grade_50p_2024                 Decimal? @db.Decimal(10, 2)
+  grade_70p_2024                 Decimal? @db.Decimal(10, 2)
+  recruitment_2025               Int?
+  competition_rate_2025          Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2025      Int?
+  actual_competition_rate_2025   Decimal? @db.Decimal(10, 2)
+  converted_score_50p_2025       Decimal? @db.Decimal(10, 2)
+  converted_score_70p_2025       Decimal? @db.Decimal(10, 2)
+  total_score_2025               Decimal? @db.Decimal(10, 2)
+  grade_50p_2025                 Decimal? @db.Decimal(10, 2)
+  grade_70p_2025                 Decimal? @db.Decimal(10, 2)
+  recruitment_2026               Int?
+  competition_rate_2026          Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2026      Int?
+  actual_competition_rate_2026   Decimal? @db.Decimal(10, 2)
+  converted_score_50p_2026       Decimal? @db.Decimal(10, 2)
+  converted_score_70p_2026       Decimal? @db.Decimal(10, 2)
+  total_score_2026               Decimal? @db.Decimal(10, 2)
+  grade_50p_2026                 Decimal? @db.Decimal(10, 2)
+  grade_70p_2026                 Decimal? @db.Decimal(10, 2)
+  created_at                     DateTime @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime @default(now()) @db.Timestamp(6)
+}
+
+model susi_kyokwa_ipkyul {
+  id                           Int      @id(map: "PK_eb9cd109c6fce0c09677a686e1f") @default(autoincrement())
+  ida_id                       String   @unique(map: "UQ_471d2a611bcf260be8daa9e73bc") @db.VarChar(50)
+  recruitment_2023             Int?
+  competition_rate_2023        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2023    Int?
+  actual_competition_rate_2023 Decimal? @db.Decimal(10, 2)
+  student_record_grade_50_2023 Decimal? @db.Decimal(10, 2)
+  student_record_grade_70_2023 Decimal? @db.Decimal(10, 2)
+  recruitment_2024             Int?
+  competition_rate_2024        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2024    Int?
+  actual_competition_rate_2024 Decimal? @db.Decimal(10, 2)
+  student_record_grade_50_2024 Decimal? @db.Decimal(10, 2)
+  student_record_grade_70_2024 Decimal? @db.Decimal(10, 2)
+  recruitment_2025             Int?
+  competition_rate_2025        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2025    Int?
+  actual_competition_rate_2025 Decimal? @db.Decimal(10, 2)
+  student_record_grade_50_2025 Decimal? @db.Decimal(10, 2)
+  student_record_grade_70_2025 Decimal? @db.Decimal(10, 2)
+  recruitment_2026             Int?
+  competition_rate_2026        Decimal? @db.Decimal(10, 2)
+  additional_pass_rank_2026    Int?
+  actual_competition_rate_2026 Decimal? @db.Decimal(10, 2)
+  student_record_grade_50_2026 Decimal? @db.Decimal(10, 2)
+  student_record_grade_70_2026 Decimal? @db.Decimal(10, 2)
+  created_at                   DateTime @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime @default(now()) @db.Timestamp(6)
+}
+
+model susi_kyokwa_recruitment {
+  id                          Int      @id(map: "PK_9b330691880ed10bd4315b17a80") @default(autoincrement())
+  ida_id                      String   @unique(map: "UQ_36350df7c3086379659bea0bfda") @db.VarChar(50)
+  university_name             String?  @db.VarChar(200)
+  university_code             String?  @db.VarChar(20)
+  university_type             String?  @db.VarChar(50)
+  admission_type              String?  @db.VarChar(50)
+  admission_name              String?  @db.VarChar(200)
+  category                    String?  @db.VarChar(100)
+  recruitment_unit            String?  @db.VarChar(200)
+  region_major                String?  @db.VarChar(100)
+  region_detail               String?  @db.VarChar(100)
+  admission_category          String?  @db.VarChar(20)
+  admission_subtype           String?  @db.VarChar(100)
+  qualification               String?
+  admission_method            String?
+  minimum_standard            String?
+  career_subject_evaluation   String?
+  subject_reflection_by_grade String?
+  recruitment_count           Int?
+  major_field                 String?  @db.VarChar(100)
+  mid_field                   String?  @db.VarChar(100)
+  minor_field                 String?  @db.VarChar(200)
+  multiple_application        String?  @db.VarChar(20)
+  required_documents          String?
+  grade_reflection_ratio      String?
+  reflected_subjects          String?
+  career_selection_subjects   String?
+  selection_model             String?  @db.VarChar(100)
+  selection_ratio             Int?
+  stage1_method               String?
+  stage2_method               String?
+  student_record_quantitative Int?
+  student_record_qualitative  Int?
+  interview_ratio             Int?
+  essay_ratio                 Int?
+  practical_ratio             Int?
+  document_ratio              Int?
+  etc_ratio                   Int?
+  etc_details                 String?
+  student_record_indicator    String?  @db.VarChar(100)
+  reflected_semester          Int?
+  grade1_ratio                Int?
+  grade2_ratio                Int?
+  grade3_ratio                Int?
+  grade12_ratio               Int?
+  grade23_ratio               Int?
+  grade123_ratio              Int?
+  grade13_ratio               Int?
+  subject_ratio               Int?
+  non_subject_ratio           Int?
+  non_subject_items           String?
+  grade1_score                Int?
+  grade2_score                Int?
+  grade3_score                Int?
+  grade4_score                Int?
+  grade5_score                Int?
+  grade6_score                Int?
+  grade7_score                Int?
+  grade8_score                Int?
+  grade9_score                Int?
+  reflected_subjects_detail   String?
+  career_subject_method       String?
+  reflection_yn               String?  @db.VarChar(5)
+  all_areas_required          String?  @db.VarChar(20)
+  required_subjects           String?
+  inquiry_reflection_method   String?
+  created_at                  DateTime @default(now()) @db.Timestamp(6)
+  updated_at                  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_type], map: "idx_susi_kyokwa_recruitment_admission_type")
+  @@index([university_code], map: "idx_susi_kyokwa_recruitment_university_code")
+}
+
+model susi_kyokwa_special {
+  id                 Int      @id(map: "PK_2aac8dd1b7cd88326bd2fed1809") @default(autoincrement())
+  ida_id             String   @unique(map: "UQ_c2fee68df52cb8ff076947f4bcb") @db.VarChar(50)
+  admission_category String?  @db.VarChar(20)
+  qualification_2026 String?
+  created_at         DateTime @default(now()) @db.Timestamp(6)
+  updated_at         DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([admission_category], map: "idx_susi_kyokwa_special_category")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_pass_record_tb {
+  id                     Int     @id(map: "PK_ec96f76e7b1eb90dfb130952880") @default(autoincrement())
+  unified_id             String? @db.VarChar(50)
+  region                 String? @db.VarChar(20)
+  department             String? @db.VarChar(80)
+  university_name        String? @db.VarChar(80)
+  recruitment_unit_name  String? @db.VarChar(80)
+  central_classification String? @db.VarChar(20)
+  basic_type             String? @db.VarChar(20)
+  type_name              String? @db.VarChar(50)
+  first_result           String? @db.VarChar(20)
+  final_result           String? @db.VarChar(20)
+  avg_grade_all          String? @db.VarChar(20)
+  avg_grade_gyss         String? @db.VarChar(20)
+  avg_grade_gysg         String? @db.VarChar(20)
+  avg_grade_gyst_100     String? @db.VarChar(20)
+  avg_grade_gyst         String? @db.VarChar(20)
+
+  @@index([unified_id], map: "IDX_b17cde38fcf8e5ffd67226d356")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_subject_tb {
+  id                                            Int                            @id(map: "PK_17bacf530936e96d6eb6f1b303c") @default(autoincrement())
+  unified_id                                    String?                        @db.VarChar(50)
+  year                                          Int?
+  region                                        String?                        @db.VarChar(20)
+  university_name                               String?                        @db.VarChar(50)
+  university_code                               String?                        @db.VarChar(20)
+  national_or_private                           String?                        @db.VarChar(10)
+  basic_type                                    String?                        @db.VarChar(30)
+  detailed_type                                 String?                        @db.VarChar(50)
+  type_name                                     String?                        @db.VarChar(100)
+  central_classification                        String?                        @db.VarChar(10)
+  department                                    String?                        @db.VarChar(10)
+  college                                       String?                        @db.VarChar(50)
+  recruitment_unit_name                         String?                        @db.VarChar(50)
+  large_department                              String?                        @db.VarChar(50)
+  medium_department                             String?                        @db.VarChar(50)
+  small_department                              String?                        @db.VarChar(50)
+  recruitment_number                            String?                        @db.VarChar(30)
+  selection_model                               String?                        @db.VarChar(30)
+  selection_ratio                               String?                        @db.VarChar(30)
+  selection_method                              String?                        @db.VarChar(60)
+  curriculum                                    Int?
+  interview                                     Int?
+  attendance                                    Int?
+  volunteer                                     Int?
+  document_non_academic                         Int?
+  practical_skills                              Int?
+  step1_score                                   Int?
+  step2_others                                  Int?
+  step2_interview                               Int?
+  step2_other_details                           String?                        @db.VarChar(255)
+  application_eligibility_text                  String?
+  student_record_utilization_index              String?                        @db.VarChar(30)
+  curriculum_reflection_semester                Int?
+  first_year_ratio                              Int?
+  second_year_ratio                             Int?
+  third_year_ratio                              Int?
+  second_third_year_ratio                       Int?
+  first_second_third_year_ratio                 Int?
+  curriculum_grade_1                            Int?
+  curriculum_grade_2                            Int?
+  curriculum_grade_3                            Int?
+  curriculum_grade_4                            Int?
+  curriculum_grade_5                            Int?
+  curriculum_grade_6                            Int?
+  curriculum_grade_7                            Int?
+  curriculum_grade_8                            Int?
+  curriculum_grade_9                            Int?
+  common_general_and_career_integration         Int?
+  common_general_subject_ratio                  Int?
+  reflected_subject_1_year_korean               Int?
+  reflected_subject_1_year_math                 Int?
+  reflected_subject_1_year_english              Int?
+  reflected_subject_1_year_science              Int?
+  reflected_subject_1_year_social               Int?
+  reflected_subject_1_year_korean_history       Int?
+  reflected_subject_1_year_other                Int?
+  number_of_optional_subjects_1                 Int?
+  total_number_of_top_subjects_1                Int?
+  number_of_top_subjects_per_subject_1          Int?
+  reflected_subject_2_3_years_korean            Int?
+  reflected_subject_2_3_years_math              Int?
+  reflected_subject_2_3_years_english           Int?
+  reflected_subject_2_3_years_science           Int?
+  reflected_subject_2_3_years_social            Int?
+  reflected_subject_2_3_years_korean_history    Int?
+  reflected_subject_2_3_years_other             Int?
+  number_of_optional_subjects_2_3               Int?
+  total_number_of_top_subjects_2_3              Int?
+  number_of_top_subjects_per_subject_2_3        Int?
+  common_general_reflection_method              String?                        @db.VarChar(100)
+  perfect_score                                 Int?
+  attendance_usage                              Int?
+  attendance_usage_ratio                        Int?
+  absence_1                                     Int?
+  absence_2                                     Int?
+  absence_3                                     Int?
+  absence_4                                     Int?
+  absence_5                                     Int?
+  absence_6                                     Int?
+  absence_7                                     Int?
+  absence_8                                     Int?
+  absence_9                                     Int?
+  absence_10                                    Int?
+  absence_11                                    Int?
+  absence_12                                    Int?
+  absence_13                                    Int?
+  absence_14                                    Int?
+  absence_15                                    Int?
+  absence_16                                    Int?
+  absence_17                                    Int?
+  absence_18                                    Int?
+  absence_19                                    Int?
+  absence_20                                    Int?
+  career_subject_application                    Int?
+  career_subject_reflection_method              String?
+  career_optional_subject                       Int?
+  career_if_2                                   String?
+  career_optional_subject_A                     Int?
+  career_optional_subject_B                     Int?
+  career_optional_subject_C                     Int?
+  A_distribution_ratio                          Int?
+  B_distribution_ratio                          Int?
+  C_distribution_ratio                          Int?
+  career_subject_ratio                          Int?
+  career_subject_additional_points              Int?
+  number_of_top_subjects_in_all_career_subjects Int?
+  number_of_top_subjects_in_career_curriculum   Int?
+  grade_cut                                     String?                        @db.VarChar(50)
+  grade_cut_70                                  String?                        @db.VarChar(50)
+  converted_score_cut                           String?                        @db.VarChar(50)
+  non_subject_cut                               String?                        @db.VarChar(50)
+  converted_score_total                         Float?
+  risk_level_plus5                              Float?
+  risk_level_plus4                              Float?
+  risk_level_plus3                              Float?
+  risk_level_plus2                              Float?
+  risk_level_plus1                              Float?
+  risk_level_minus1                             Float?
+  risk_level_minus2                             Float?
+  risk_level_minus3                             Float?
+  risk_level_minus4                             Float?
+  risk_level_minus5                             Float?
+  minimum_academic_standards_applied            Int?
+  minimum_academic_standards_text               String?
+  minimum_korean                                Int?
+  minimum_math                                  Int?
+  minimum_math_science_engineering              Int?
+  english                                       Int?
+  social_studies                                Int?
+  science_studies                               Int?
+  calculation_studies                           Int?
+  minimum_count                                 Int?
+  minimum_sum                                   Float?
+  korean_history                                Float?
+  others                                        Int?
+  others_details                                String?
+  additional_points                             Int?
+  additional_points_text                        String?
+  interview_score_applied                       String?                        @db.VarChar(100)
+  interview_type                                String?                        @db.VarChar(50)
+  interview_resources                           String?                        @db.VarChar(100)
+  interview_method                              String?                        @db.VarChar(100)
+  interview_evaluation_content                  String?                        @db.VarChar(100)
+  interview_date_text                           String?                        @db.VarChar(20)
+  interview_time                                String?                        @db.VarChar(20)
+  curriculum_calculation_formula                Int?
+  admission_criteria_2024                       String?                        @db.VarChar(50)
+  admission_2024_grade                          String?                        @db.VarChar(50)
+  admission_2024_converted_score                String?                        @db.VarChar(60)
+  competition_rate_2024                         String?                        @db.VarChar(50)
+  replenishment_2024                            String?                        @db.VarChar(10)
+  admission_criteria_2023                       String?                        @db.VarChar(50)
+  admission_2023_grade                          String?                        @db.VarChar(50)
+  admission_2023_converted_score                String?                        @db.VarChar(10)
+  competition_rate_2023                         String?                        @db.VarChar(50)
+  replenishment_2023                            String?                        @db.VarChar(10)
+  admission_criteria_2022                       String?                        @db.VarChar(50)
+  admission_2022_grade                          String?                        @db.VarChar(50)
+  competition_rate_2022                         String?                        @db.VarChar(50)
+  replenishment_2022                            String?                        @db.VarChar(10)
+  admission_2021_grade                          String?                        @db.VarChar(50)
+  competition_rate_2021                         String?                        @db.VarChar(50)
+  replenishment_2021                            String?                        @db.VarChar(10)
+  admission_2020_grade                          String?                        @db.VarChar(50)
+  competition_rate_2020                         String?                        @db.VarChar(50)
+  replenishment_2020                            String?                        @db.VarChar(10)
+  application_notes                             String?                        @db.VarChar(50)
+  susi_user_recruitment_scores                  susi_user_recruitment_scores[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_user_calculated_scores {
+  id                      Int       @id(map: "PK_2924de88568b35b806f3c5cc3f8") @default(autoincrement())
+  member_id               BigInt
+  university_name         String    @db.VarChar(100)
+  year                    Int?
+  converted_score         Decimal   @default(0) @db.Decimal(10, 5)
+  max_score               Decimal?  @db.Decimal(10, 5)
+  score_percentage        Decimal?  @db.Decimal(5, 2)
+  average_grade           Decimal?  @db.Decimal(4, 2)
+  grade_1_average         Decimal?  @db.Decimal(4, 2)
+  grade_2_average         Decimal?  @db.Decimal(4, 2)
+  grade_3_average         Decimal?  @db.Decimal(4, 2)
+  korean_score            Decimal   @default(0) @db.Decimal(10, 5)
+  korean_average_grade    Decimal?  @db.Decimal(4, 2)
+  english_score           Decimal   @default(0) @db.Decimal(10, 5)
+  english_average_grade   Decimal?  @db.Decimal(4, 2)
+  math_score              Decimal   @default(0) @db.Decimal(10, 5)
+  math_average_grade      Decimal?  @db.Decimal(4, 2)
+  social_score            Decimal   @default(0) @db.Decimal(10, 5)
+  social_average_grade    Decimal?  @db.Decimal(4, 2)
+  science_score           Decimal   @default(0) @db.Decimal(10, 5)
+  science_average_grade   Decimal?  @db.Decimal(4, 2)
+  etc_score               Decimal   @default(0) @db.Decimal(10, 5)
+  reflected_subject_count Int       @default(0)
+  reflected_subjects      Json?
+  attendance_score        Decimal   @default(0) @db.Decimal(10, 5)
+  volunteer_score         Decimal   @default(0) @db.Decimal(10, 5)
+  success                 Boolean   @default(true)
+  failure_reason          String?   @db.VarChar(500)
+  calculated_at           DateTime? @db.Timestamp(6)
+  created_at              DateTime  @default(now()) @db.Timestamp(6)
+  updated_at              DateTime  @default(now()) @db.Timestamp(6)
+
+  @@unique([member_id, university_name], map: "IDX_384f9f54162b542abc81859ea2")
+  @@index([university_name], map: "IDX_394be1b17d671015335c851278")
+  @@index([member_id], map: "IDX_5fccc51f65c1c6243bace2ee5d")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model susi_user_recruitment_scores {
+  id                         Int             @id(map: "PK_5a7f2fd59ed45e3837a685c5f8d") @default(autoincrement())
+  member_id                  BigInt
+  susi_subject_id            Int
+  university_name            String          @db.VarChar(100)
+  recruitment_name           String          @db.VarChar(200)
+  type_name                  String?         @db.VarChar(100)
+  basic_type                 String?         @db.VarChar(50)
+  detailed_type              String?         @db.VarChar(50)
+  department                 String?         @db.VarChar(50)
+  year                       Int?
+  converted_score            Decimal         @default(0) @db.Decimal(10, 5)
+  max_score                  Decimal?        @db.Decimal(10, 5)
+  score_percentage           Decimal?        @db.Decimal(5, 2)
+  average_grade              Decimal?        @db.Decimal(4, 2)
+  risk_score                 Int?
+  grade_cut_50               Decimal?        @db.Decimal(4, 2)
+  grade_cut_70               Decimal?        @db.Decimal(4, 2)
+  grade_difference           Decimal?        @db.Decimal(4, 2)
+  last_year_avg_grade        Decimal?        @db.Decimal(4, 2)
+  last_year_min_grade        Decimal?        @db.Decimal(4, 2)
+  last_year_competition_rate Decimal?        @db.Decimal(6, 2)
+  success                    Boolean         @default(true)
+  failure_reason             String?         @db.VarChar(500)
+  calculated_at              DateTime?       @db.Timestamp(6)
+  created_at                 DateTime        @default(now()) @db.Timestamp(6)
+  updated_at                 DateTime        @default(now()) @db.Timestamp(6)
+  susi_subject_tb            susi_subject_tb @relation(fields: [susi_subject_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_e643217a3ebc14c16c7720860d7")
+
+  @@unique([member_id, susi_subject_id], map: "IDX_cd747b807b07ea872b5fbe7715")
+  @@index([member_id, university_name], map: "IDX_4acb5e028d02808e45b5fa09a2")
+  @@index([member_id], map: "IDX_4b1de013d2c58e27fc7f91320e")
+  @@index([susi_subject_id], map: "IDX_e643217a3ebc14c16c7720860d")
+}
+
+model tb_assignment_submissions {
+  id                  String           @id
+  assignment_id       String
+  student_id          String
+  submission_file_url String?
+  feedback            String?
+  grade               Int?
+  status              SubmissionStatus @default(pending)
+  submitted_at        DateTime         @default(now())
+  tb_assignments      tb_assignments   @relation(fields: [assignment_id], references: [id])
+  tb_users            tb_users         @relation(fields: [student_id], references: [id])
+
+  @@unique([assignment_id, student_id])
+}
+
+model tb_assignments {
+  id                        String                      @id
+  lesson_id                 String
+  title                     String
+  description               String?
+  due_date                  DateTime?
+  file_url                  String?
+  created_at                DateTime                    @default(now())
+  tb_assignment_submissions tb_assignment_submissions[]
+  tb_lesson_plans           tb_lesson_plans             @relation(fields: [lesson_id], references: [id])
+}
+
+model tb_auth_member {
+  tb_auth_id    String      @id @db.VarChar(30)
+  nickname      String?     @db.VarChar(255)
+  email         String?     @db.VarChar(500)
+  member_type   String?     @db.VarChar(20)
+  phone         String?     @db.VarChar(255)
+  created_at    DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at DateTime    @default(now()) @db.Timestamp(6)
+  auth_member   auth_member @relation(fields: [tb_auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tb_auth_member_hub_member")
+}
+
+model tb_class_enrollments {
+  id                                                 String     @id
+  class_id                                           String
+  student_id                                         String
+  parent_id                                          String?
+  enrolled_at                                        DateTime   @default(now())
+  tb_classes                                         tb_classes @relation(fields: [class_id], references: [id])
+  tb_users_tb_class_enrollments_parent_idTotb_users  tb_users?  @relation("tb_class_enrollments_parent_idTotb_users", fields: [parent_id], references: [id])
+  tb_users_tb_class_enrollments_student_idTotb_users tb_users   @relation("tb_class_enrollments_student_idTotb_users", fields: [student_id], references: [id])
+
+  @@unique([class_id, student_id])
+}
+
+model tb_classes {
+  id                   String                 @id
+  teacher_id           String
+  name                 String
+  description          String?
+  invite_code          String                 @unique
+  start_date           DateTime?
+  end_date             DateTime?
+  created_at           DateTime               @default(now())
+  tb_class_enrollments tb_class_enrollments[]
+  tb_users             tb_users               @relation(fields: [teacher_id], references: [id])
+  tb_lesson_plans      tb_lesson_plans[]
+  tb_payments          tb_payments[]
+}
+
+model tb_lesson_plans {
+  id             String           @id
+  class_id       String
+  title          String
+  description    String?
+  scheduled_date DateTime?
+  progress       Int              @default(0)
+  updated_at     DateTime
+  tb_assignments tb_assignments[]
+  tb_classes     tb_classes       @relation(fields: [class_id], references: [id])
+  tb_tests       tb_tests[]
+}
+
+model tb_notifications {
+  id       String           @id
+  user_id  String
+  message  String
+  type     NotificationType @default(general)
+  read     Boolean          @default(false)
+  sent_at  DateTime         @default(now())
+  tb_users tb_users         @relation(fields: [user_id], references: [id])
+}
+
+model tb_payments {
+  id          String        @id
+  class_id    String
+  student_id  String
+  amount      Decimal
+  due_date    DateTime
+  paid_date   DateTime?
+  status      PaymentStatus @default(pending)
+  receipt_url String?
+  created_at  DateTime      @default(now())
+  tb_classes  tb_classes    @relation(fields: [class_id], references: [id])
+  tb_users    tb_users      @relation(fields: [student_id], references: [id])
+}
+
+model tb_student_badges {
+  id         String   @id
+  student_id String
+  badge_type String
+  badge_name String
+  earned_at  DateTime @default(now())
+  tb_users   tb_users @relation(fields: [student_id], references: [id])
+}
+
+model tb_test_results {
+  id         String   @id
+  test_id    String
+  student_id String
+  score      Int
+  feedback   String?
+  taken_at   DateTime @default(now())
+  tb_users   tb_users @relation(fields: [student_id], references: [id])
+  tb_tests   tb_tests @relation(fields: [test_id], references: [id])
+
+  @@unique([test_id, student_id])
+}
+
+model tb_tests {
+  id              String            @id
+  lesson_id       String
+  title           String
+  description     String?
+  test_date       DateTime?
+  max_score       Int
+  created_at      DateTime          @default(now())
+  tb_test_results tb_test_results[]
+  tb_lesson_plans tb_lesson_plans   @relation(fields: [lesson_id], references: [id])
+}
+
+model tb_users {
+  id                                                             String                      @id
+  hub_user_id                                                    Int?                        @unique
+  username                                                       String
+  email                                                          String                      @unique
+  role                                                           UserRole
+  phone                                                          String?
+  avatar_url                                                     String?
+  created_at                                                     DateTime                    @default(now())
+  tb_assignment_submissions                                      tb_assignment_submissions[]
+  tb_class_enrollments_tb_class_enrollments_parent_idTotb_users  tb_class_enrollments[]      @relation("tb_class_enrollments_parent_idTotb_users")
+  tb_class_enrollments_tb_class_enrollments_student_idTotb_users tb_class_enrollments[]      @relation("tb_class_enrollments_student_idTotb_users")
+  tb_classes                                                     tb_classes[]
+  tb_notifications                                               tb_notifications[]
+  tb_payments                                                    tb_payments[]
+  tb_student_badges                                              tb_student_badges[]
+  tb_test_results                                                tb_test_results[]
+}
+
+model typeorm_migrations {
+  id        Int    @id(map: "PK_bb2f075707dd300ba86d0208923") @default(autoincrement())
+  timestamp BigInt
+  name      String @db.VarChar
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model university_level {
+  id              Int    @id(map: "PK_a2137818eacd405ba0212353a7c") @default(autoincrement())
+  university_name String @db.VarChar(100)
+  university_code String @db.VarChar(10)
+  level           Int
+}
+
+enum NotificationType {
+  assignment
+  test
+  payment
+  general
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  overdue
+}
+
+enum SubmissionStatus {
+  pending
+  submitted
+  graded
+}
+
+enum UserRole {
+  teacher
+  parent
+  student
+}
+
+enum ss_admission_basic_type_enum {
+  General @map("일반")
+  Special @map("특별")
+}
+
+enum ss_recruitment_unit_minimum_grade_is_applied_enum {
+  Y
+  N
+}
+
+enum ss_university_establishment_type_enum {
+  National @map("국립")
+  Private @map("사립")
+  EMPTY_ENUM_VALUE @map("")
+}

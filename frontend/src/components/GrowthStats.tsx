@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Target, Flame, BarChart3, ChevronUp, ChevronDown } from 'lucide-react';
-import { leaderboardApi, snapshotApi } from '../lib/api';
+import { TrendingUp, Target, Flame, BarChart3, ChevronUp, ChevronDown, Award, Sparkles } from 'lucide-react';
+import { leaderboardApi, snapshotApi, growthApi } from '../lib/api';
 
 interface Props {
     arenaId: number;
@@ -12,29 +12,34 @@ interface Props {
  * - 하위권: 절대 순위 대신 "상위 N% 진입까지 M점"
  * - 변화량 강조: "어제보다 N위 상승"
  * - 스터디 스트릭 시각화
+ * - 과목별 성장 점수 (SP 연동)
  */
 export function GrowthStats({ arenaId, memberId }: Props) {
     const [myRanking, setMyRanking] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [streak, setStreak] = useState(0);
+    const [growthData, setGrowthData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadData();
+        if (memberId) {
+            loadData();
+        }
     }, [arenaId, memberId]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const [rankRes, statsRes] = await Promise.all([
+            const [rankRes, statsRes, growthRes, streakRes] = await Promise.all([
                 leaderboardApi.getMyRanking(arenaId, 'daily'),
                 snapshotApi.getStatistics(arenaId, 'weekly'),
+                growthApi.getScore(memberId, arenaId),
+                growthApi.getStreak(memberId, arenaId),
             ]);
             setMyRanking(rankRes.data);
             setStats(statsRes.data);
-
-            // TODO: 스트릭 API 연동
-            setStreak(Math.floor(Math.random() * 14) + 1); // 임시 값
+            setGrowthData(growthRes.data);
+            setStreak(streakRes.data.streak);
         } catch { /* ignore */ }
         setLoading(false);
     };
@@ -69,7 +74,6 @@ export function GrowthStats({ arenaId, memberId }: Props) {
             );
         } else {
             // 하위권: 전략적 비공개
-            const targetRank = Math.ceil(totalMembers * 0.3);
             const gap = myRanking.score
                 ? Math.max(0, (myRanking.topScore || 100) * 0.3 - (myRanking.score || 0))
                 : 0;
@@ -97,6 +101,49 @@ export function GrowthStats({ arenaId, memberId }: Props) {
                 </div>
             );
         }
+    };
+
+    const renderGrowthScore = () => {
+        if (!growthData) return null;
+        const { currentGrowthScore, recentImprovements, message } = growthData;
+
+        return (
+            <div className="p-4 bg-white rounded-2xl border border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-semibold text-gray-800">성장 점수</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-black text-purple-500">{currentGrowthScore.toFixed(1)}</span>
+                        <span className="text-xs text-gray-400">점</span>
+                    </div>
+                </div>
+
+                {recentImprovements && recentImprovements.length > 0 ? (
+                    <div className="space-y-2">
+                        {recentImprovements.map((imp: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl px-3 py-2">
+                                <div>
+                                    <span className="text-sm font-medium text-gray-700">{imp.subject}</span>
+                                    <div className="text-[10px] text-gray-400">{imp.currentExam || ''}</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">{imp.previousGrade}등급</span>
+                                    <Sparkles className="w-3 h-3 text-amber-400" />
+                                    <span className="text-sm font-bold text-green-600">{imp.currentGrade}등급</span>
+                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+                                        {imp.bonus || `▲${imp.improvement}`}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-xs text-gray-400 text-center">{message}</p>
+                )}
+            </div>
+        );
     };
 
     const renderStreak = () => {
@@ -148,7 +195,9 @@ export function GrowthStats({ arenaId, memberId }: Props) {
             </h2>
 
             {renderRankDisplay()}
+            {renderGrowthScore()}
             {renderStreak()}
         </div>
     );
 }
+

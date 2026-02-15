@@ -36,12 +36,14 @@ export default function ArenaDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [arena, setArena] = useState<ArenaDetail | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [myMemberId, setMyMemberId] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const { selectedPeriod, setPeriod } = useArenaStore();
 
     useEffect(() => {
         if (id) {
             loadArena(parseInt(id, 10));
+            loadMyMembership(parseInt(id, 10));
             loadLeaderboard(parseInt(id, 10), selectedPeriod);
         }
     }, [id, selectedPeriod]);
@@ -52,6 +54,15 @@ export default function ArenaDetailPage() {
             setArena(data);
         } catch {
             setArena(null);
+        }
+    };
+
+    const loadMyMembership = async (arenaId: number) => {
+        try {
+            const { data } = await arenaApi.getMyMembership(arenaId);
+            setMyMemberId(data.memberId);
+        } catch (e) {
+            console.error('Membership load failed:', e);
         }
     };
 
@@ -71,6 +82,24 @@ export default function ArenaDetailPage() {
         { key: 'weekly' as const, label: '이번 주' },
         { key: 'monthly' as const, label: '이번 달' },
     ];
+    // ... (skip lines)
+    {/* 접속 현황 & 응원 */ }
+    { id && <OnlineMembers arenaId={parseInt(id, 10)} myMemberId={myMemberId} /> }
+
+    {/* 나의 성장 */ }
+    { id && <GrowthStats arenaId={parseInt(id, 10)} memberId={myMemberId} /> }
+
+    {/* 배지 컬렉션 */ }
+    <BadgeCollection memberId={myMemberId} />
+
+    {/* 실시간 랭킹 */ }
+    {
+        id && (
+            <div className="card-glass p-4">
+                <RealTimeRanking arenaId={parseInt(id, 10)} memberId={myMemberId} />
+            </div>
+        )
+    }
 
     const getRankIcon = (rank: number) => {
         if (rank === 1) return <Crown className="w-5 h-5 text-yellow-500" />;
@@ -254,18 +283,18 @@ export default function ArenaDetailPage() {
             {id && <LeagueSection arenaId={parseInt(id, 10)} />}
 
             {/* 접속 현황 & 응원 */}
-            {id && <OnlineMembers arenaId={parseInt(id, 10)} myMemberId={0} />}
+            {id && <OnlineMembers arenaId={parseInt(id, 10)} myMemberId={myMemberId} />}
 
             {/* 나의 성장 */}
-            {id && <GrowthStats arenaId={parseInt(id, 10)} memberId={0} />}
+            {id && <GrowthStats arenaId={parseInt(id, 10)} memberId={myMemberId} />}
 
             {/* 배지 컬렉션 */}
-            <BadgeCollection memberId={0} />
+            <BadgeCollection memberId={myMemberId} />
 
             {/* 실시간 랭킹 */}
             {id && (
                 <div className="card-glass p-4">
-                    <RealTimeRanking arenaId={parseInt(id, 10)} memberId={0} />
+                    <RealTimeRanking arenaId={parseInt(id, 10)} memberId={myMemberId} />
                 </div>
             )}
 

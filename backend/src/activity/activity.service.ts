@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma';
+import { ArenaGateway } from '../realtime/arena.gateway';
 
 @Injectable()
 export class ActivityService {
@@ -13,7 +14,10 @@ export class ActivityService {
         lastHeartbeat: Date;
     }>();
 
-    constructor(private readonly prisma: PrismaService) {
+    constructor(
+        private readonly prisma: PrismaService,
+        @Optional() private readonly gateway?: ArenaGateway,
+    ) {
         // 1분마다 오프라인 멤버 정리
         setInterval(() => this.cleanupOffline(), 60_000);
     }
@@ -45,7 +49,7 @@ export class ActivityService {
         return result;
     }
 
-    /** 응원 보내기 */
+    /** 응원 보내기 + WebSocket 실시간 알림 */
     async sendCheer(data: {
         arenaId: number;
         senderId: number;
@@ -63,7 +67,7 @@ export class ActivityService {
             },
         });
 
-        return {
+        const result = {
             id: Number(cheer.id),
             arenaId: Number(cheer.arenaId),
             senderId: Number(cheer.senderId),
@@ -72,6 +76,18 @@ export class ActivityService {
             message: cheer.message,
             createdAt: cheer.createdAt,
         };
+
+        // 실시간 WebSocket 알림
+        if (this.gateway) {
+            this.gateway.emitCheerReceived(data.arenaId, {
+                senderId: data.senderId,
+                receiverId: data.receiverId,
+                type: data.type || 'fire',
+                message: data.message,
+            });
+        }
+
+        return result;
     }
 
     /** 내가 받은 응원 조회 */

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Users, Plus, ChevronRight, Swords, Flame } from 'lucide-react';
+import { Trophy, Users, Plus, ChevronRight, Swords, Flame, GraduationCap, UserPlus, BarChart3, ArrowRight } from 'lucide-react';
 import { arenaApi } from '../lib/api';
 
 interface ArenaItem {
@@ -112,6 +112,78 @@ export default function DashboardPage() {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* 선생님 전용 클래스 관리 섹션 */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-[1px]">
+                <div className="rounded-2xl bg-white/95 backdrop-blur-sm p-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                            <GraduationCap className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                선생님 전용 클래스 관리
+                            </h2>
+                            <p className="text-sm text-gray-500">
+                                반 학생들의 학습 현황을 한눈에 파악하세요
+                            </p>
+                        </div>
+                    </div>
+
+                    <p className="text-gray-600 mb-6 leading-relaxed">
+                        Study Arena에 <strong>우리 반 클래스</strong>를 만들고, 학생들을 등록하면
+                        <br className="hidden sm:block" />
+                        <span className="text-indigo-600 font-semibold">일간 · 주간 · 월간 학습 분량 비교 차트</span>를 통해
+                        학생들의 성장을 추적할 수 있습니다.
+                    </p>
+
+                    <div className="grid gap-4 sm:grid-cols-3 mb-6">
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-indigo-50/80 border border-indigo-100">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <Plus className="w-4 h-4 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-gray-900 text-sm">클래스 생성</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    반 이름을 입력해 간편하게 클래스를 만듭니다
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-purple-50/80 border border-purple-100">
+                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <UserPlus className="w-4 h-4 text-purple-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-gray-900 text-sm">학생 등록</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    학생 ID를 입력해 한번에 등록합니다
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-pink-50/80 border border-pink-100">
+                            <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <BarChart3 className="w-4 h-4 text-pink-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-gray-900 text-sm">학습량 비교</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    일간 · 주간 · 월간 차트로 비교 분석
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a
+                        href="http://localhost:3020"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/25 active:scale-95 text-sm"
+                    >
+                        클래스 관리 시작하기
+                        <ArrowRight className="w-4 h-4" />
+                    </a>
+                </div>
             </div>
         </div>
     );

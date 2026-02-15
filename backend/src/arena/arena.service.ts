@@ -8,6 +8,64 @@ export class ArenaService {
     constructor(private readonly prisma: PrismaService) { }
 
     /**
+     * AuthMember 동기화 (접속 시 실행)
+     */
+    private async syncAuthMember(hubMemberId: number) {
+        const authMemberId = `sa_${hubMemberId}`;
+        try {
+            await this.prisma.authMember.upsert({
+                where: { id: authMemberId },
+                update: { lastLogin: new Date() },
+                create: {
+                    id: authMemberId,
+                    hubId: BigInt(hubMemberId),
+                    lastLogin: new Date(),
+                },
+            });
+        } catch (e) {
+            this.logger.error(`AuthMember sync failed: ${e.message}`);
+        }
+        return authMemberId;
+    }
+
+    /**
+     * 내 멤버십 조회 (및 AuthMember 동기화)
+     */
+    async getMyMembership(arenaId: number, hubMemberId: number) {
+        // 1. AuthMember 동기화
+        const authMemberId = await this.syncAuthMember(hubMemberId);
+
+        // 2. 아레나 멤버 조회
+        const member = await this.prisma.arenaMember.findFirst({
+            where: {
+                arenaId: BigInt(arenaId),
+                hubMemberId: BigInt(hubMemberId),
+                isActive: true,
+            },
+        });
+
+        if (!member) {
+            throw new NotFoundException('아레나 멤버가 아닙니다.');
+        }
+
+        // 3. AuthMember 연결 확인 및 업데이트
+        if (member.authMemberId !== authMemberId) {
+            await this.prisma.arenaMember.update({
+                where: { id: member.id },
+                data: { authMemberId },
+            });
+        }
+
+        return {
+            memberId: Number(member.id),
+            studentId: Number(member.studentId),
+            role: member.role,
+            joinedAt: member.joinedAt,
+            authMemberId,
+        };
+    }
+
+    /**
      * 초대 코드 생성 (6자리 영숫자)
      */
     private generateInviteCode(): string {
@@ -51,12 +109,15 @@ export class ArenaService {
             },
         });
 
-        // 생성자를 owner로 자동 추가
+        // 생성자를 owner로 자동 추가 (AuthMember 동기화 포함)
+        const authMemberId = await this.syncAuthMember(ownerId);
+
         await this.prisma.arenaMember.create({
             data: {
                 arenaId: arena.id,
                 studentId: BigInt(ownerId),
                 hubMemberId: BigInt(ownerId),
+                authMemberId: authMemberId,
                 role: 'owner',
             },
         });

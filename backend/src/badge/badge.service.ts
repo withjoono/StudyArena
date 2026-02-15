@@ -117,6 +117,103 @@ export class BadgeService {
         return results;
     }
 
+    /** 학습시간 배지 자동 수여 (누적 시간 기반) */
+    async checkStudyTimeBadges(memberId: number, arenaId: number, totalHours: number) {
+        const timeBadges = BADGE_DEFINITIONS.filter(b => b.category === 'time');
+        const results: any[] = [];
+
+        for (const def of timeBadges) {
+            if (totalHours >= (def.condition as any).value) {
+                const result = await this.awardBadge(memberId, def.code, arenaId);
+                if (result) results.push(result);
+            }
+        }
+        return results;
+    }
+
+    /** 미션 완료 배지 자동 수여 */
+    async checkMissionBadges(memberId: number, arenaId: number, completedCount: number) {
+        const missionBadges = BADGE_DEFINITIONS.filter(b => b.category === 'mission');
+        const results: any[] = [];
+
+        for (const def of missionBadges) {
+            if (completedCount >= (def.condition as any).value) {
+                const result = await this.awardBadge(memberId, def.code, arenaId);
+                if (result) results.push(result);
+            }
+        }
+        return results;
+    }
+
+    /** 응원 배지 자동 수여 (보내기 & 받기) */
+    async checkCheerBadges(memberId: number, arenaId: number, cheersSent: number, cheersReceived: number) {
+        const results: any[] = [];
+
+        for (const def of BADGE_DEFINITIONS.filter(b => b.category === 'social')) {
+            const cond = def.condition as any;
+            if (cond.type === 'cheers_sent' && cheersSent >= cond.value) {
+                const result = await this.awardBadge(memberId, def.code, arenaId);
+                if (result) results.push(result);
+            }
+            if (cond.type === 'cheers_received' && cheersReceived >= cond.value) {
+                const result = await this.awardBadge(memberId, def.code, arenaId);
+                if (result) results.push(result);
+            }
+        }
+        return results;
+    }
+
+    /** 리그 배지 자동 수여 */
+    async checkLeagueBadges(memberId: number, arenaId: number, currentTier: string) {
+        const results: any[] = [];
+
+        for (const def of BADGE_DEFINITIONS.filter(b => b.category === 'league')) {
+            const cond = def.condition as any;
+            if (cond.type === 'league' && cond.value === currentTier) {
+                const result = await this.awardBadge(memberId, def.code, arenaId);
+                if (result) results.push(result);
+            }
+        }
+        return results;
+    }
+
+    /** 종합 배지 체크 — 모든 카테고리 한번에 검사 */
+    async checkAllBadges(memberId: number, arenaId: number, stats: {
+        streakDays?: number;
+        totalHours?: number;
+        completedMissions?: number;
+        cheersSent?: number;
+        cheersReceived?: number;
+        currentTier?: string;
+    }) {
+        const allResults: any[] = [];
+
+        if (stats.streakDays != null) {
+            allResults.push(...await this.checkStreakBadges(memberId, arenaId, stats.streakDays));
+        }
+        if (stats.totalHours != null) {
+            allResults.push(...await this.checkStudyTimeBadges(memberId, arenaId, stats.totalHours));
+        }
+        if (stats.completedMissions != null) {
+            allResults.push(...await this.checkMissionBadges(memberId, arenaId, stats.completedMissions));
+        }
+        if (stats.cheersSent != null || stats.cheersReceived != null) {
+            allResults.push(...await this.checkCheerBadges(
+                memberId, arenaId,
+                stats.cheersSent || 0,
+                stats.cheersReceived || 0,
+            ));
+        }
+        if (stats.currentTier) {
+            allResults.push(...await this.checkLeagueBadges(memberId, arenaId, stats.currentTier));
+        }
+
+        if (allResults.length > 0) {
+            this.logger.log(`Auto-awarded ${allResults.length} badge(s) to member ${memberId}`);
+        }
+        return allResults;
+    }
+
     private serialize(obj: any) {
         if (!obj) return null;
         const result: any = { ...obj };
