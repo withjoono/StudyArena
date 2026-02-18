@@ -49,15 +49,15 @@ export default function Layout() {
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
-            {/* ─── Header (다크 테마 + Arena 레드 악센트) ─── */}
-            <header className="sticky top-0 z-40 w-full bg-gray-900">
-                <div className="mx-auto max-w-7xl flex h-14 items-center justify-between px-4 lg:h-16 lg:px-6">
+            {/* ─── Header (토스 스타일 + Arena 악센트) ─── */}
+            <header className="gb-header" style={{ backdropFilter: 'blur(12px)', background: 'rgba(255,255,255,0.92)' }}>
+                <div className="mx-auto max-w-7xl flex h-14 items-center justify-between px-4 lg:px-6">
                     {/* ─── Logo ─── */}
-                    <Link to="/" className="flex shrink-0 items-center gap-2">
-                        <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-arena-500 flex items-center justify-center">
-                            <Swords className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+                    <Link to="/" className="gb-header-brand">
+                        <div className="h-8 w-8 lg:h-9 lg:w-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
+                            <Swords className="h-5 w-5 lg:h-5 lg:w-5 text-white" />
                         </div>
-                        <span className="font-bold text-lg text-white lg:text-xl">Study Arena</span>
+                        <span className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--color-primary)' }}>Study Arena</span>
                     </Link>
 
                     {/* ─── Desktop Navigation (플랫 메인 메뉴) ─── */}
@@ -68,10 +68,9 @@ export default function Layout() {
                                     key={item.path}
                                     to={item.path}
                                     className={cn(
-                                        'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                                        'gb-header-nav-link',
                                         location.pathname === item.path
-                                            ? 'text-arena-400 bg-arena-500/15'
-                                            : 'text-white/80 hover:text-white hover:bg-white/10'
+                                        && 'active'
                                     )}
                                 >
                                     {item.label}
@@ -147,7 +146,7 @@ export default function Layout() {
                         ) : (
                             <button
                                 onClick={redirectToLogin}
-                                className="inline-flex items-center gap-2 rounded-full bg-arena-500 px-5 py-2 text-sm font-semibold text-white hover:bg-arena-600 transition-colors shadow-lg shadow-arena-500/30"
+                                className="gb-btn gb-btn-primary gb-btn-sm" style={{ borderRadius: '9999px' }}
                             >
                                 로그인
                             </button>
@@ -156,7 +155,7 @@ export default function Layout() {
 
                     {/* ─── Mobile hamburger ─── */}
                     <button
-                        className="flex lg:hidden p-2 text-white/80 hover:text-white transition-colors"
+                        className="flex lg:hidden p-2 transition-colors" style={{ color: 'var(--color-text-secondary)' }}
                         onClick={() => setMobileOpen(true)}
                     >
                         <Menu className="h-5 w-5" />
