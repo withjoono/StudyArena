@@ -20,6 +20,10 @@ import { HubPermissionGuard } from './guards/hub-permission.guard';
                     secret: Buffer.from(secretBase64, 'base64'),
                     signOptions: {
                         expiresIn: '2h',
+                        algorithm: 'HS512' as const, // Hub JWT 알고리즘과 일치
+                    },
+                    verifyOptions: {
+                        algorithms: ['HS512' as const], // Hub JWT 검증 알고리즘
                     },
                 };
             },

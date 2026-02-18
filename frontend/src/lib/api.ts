@@ -24,7 +24,20 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Redirect to Hub login
+            // SSO 코드가 URL에 있으면 리다이렉트하지 않음 (SSO 처리 중)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('sso_code')) {
+                return Promise.reject(error);
+            }
+
+            // 이미 리다이렉트를 시도했으면 무한 루프 방지
+            const redirectAttempted = sessionStorage.getItem('studyarena_redirect_attempted');
+            if (redirectAttempted) {
+                return Promise.reject(error);
+            }
+
+            // Redirect to Hub login (1회만)
+            sessionStorage.setItem('studyarena_redirect_attempted', 'true');
             const hubUrl = import.meta.env.VITE_HUB_URL || 'http://localhost:3000';
             const redirectUrl = encodeURIComponent(window.location.href);
             window.location.href = `${hubUrl}/auth/login?redirect=${redirectUrl}`;

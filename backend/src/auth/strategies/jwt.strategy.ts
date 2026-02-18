@@ -12,9 +12,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         // Hub JWT는 base64로 인코딩된 시크릿을 Buffer.from(secret, 'base64')로 디코딩하여 서명
         const secretBase64 = process.env.AUTH_SECRET || 'studyarena-secret-key-change-in-production';
         const decodedSecret = Buffer.from(secretBase64, 'base64');
+        console.log(`[JwtStrategy] AUTH_SECRET loaded: length=${secretBase64.length}, decoded=${decodedSecret.length}bytes, first4chars=${secretBase64.substring(0, 4)}`);
         super({
             jwtFromRequest: JwtStrategy.extractJwtFromRequestOrCookie,
             secretOrKey: decodedSecret,
+            algorithms: ['HS512'], // Hub JWT는 HS512로 서명됨
         });
     }
 
