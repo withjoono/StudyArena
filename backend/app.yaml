@@ -1,7 +1,7 @@
 runtime: nodejs22
 service: studyarena-backend
 instance_class: F2
-entrypoint: npx prisma db push --accept-data-loss && node dist/main.js
+entrypoint: node dist/main.js
 
 env_variables:
   NODE_ENV: "production"
