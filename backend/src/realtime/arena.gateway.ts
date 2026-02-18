@@ -126,8 +126,8 @@ export class ArenaGateway
 
     /** 응원 수신 알림 */
     emitCheerReceived(arenaId: number, data: {
-        senderId: number;
-        receiverId: number;
+        senderId: string;
+        receiverId: string;
         type: string;
         message?: string;
     }) {

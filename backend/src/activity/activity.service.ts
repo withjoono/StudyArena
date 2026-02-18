@@ -52,16 +52,16 @@ export class ActivityService {
     /** 응원 보내기 + WebSocket 실시간 알림 */
     async sendCheer(data: {
         arenaId: number;
-        senderId: number;
-        receiverId: number;
+        senderId: string;
+        receiverId: string;
         type?: string;
         message?: string;
     }) {
         const cheer = await this.prisma.cheer.create({
             data: {
                 arenaId: BigInt(data.arenaId),
-                senderId: BigInt(data.senderId),
-                receiverId: BigInt(data.receiverId),
+                senderId: data.senderId,
+                receiverId: data.receiverId,
                 type: data.type || 'fire',
                 message: data.message,
             },
@@ -70,8 +70,8 @@ export class ActivityService {
         const result = {
             id: Number(cheer.id),
             arenaId: Number(cheer.arenaId),
-            senderId: Number(cheer.senderId),
-            receiverId: Number(cheer.receiverId),
+            senderId: cheer.senderId,
+            receiverId: cheer.receiverId,
             type: cheer.type,
             message: cheer.message,
             createdAt: cheer.createdAt,
@@ -91,16 +91,16 @@ export class ActivityService {
     }
 
     /** 내가 받은 응원 조회 */
-    async getReceivedCheers(receiverId: number, limit = 20) {
+    async getReceivedCheers(receiverId: string, limit = 20) {
         const cheers = await this.prisma.cheer.findMany({
-            where: { receiverId: BigInt(receiverId) },
+            where: { receiverId: receiverId },
             orderBy: { createdAt: 'desc' },
             take: limit,
         });
 
         return cheers.map((c: any) => ({
             id: Number(c.id),
-            senderId: Number(c.senderId),
+            senderId: c.senderId,
             type: c.type,
             message: c.message,
             createdAt: c.createdAt,
@@ -108,13 +108,13 @@ export class ActivityService {
     }
 
     /** 오늘 보낸 응원 수 */
-    async getTodayCheerCount(senderId: number) {
+    async getTodayCheerCount(senderId: string) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const count = await this.prisma.cheer.count({
             where: {
-                senderId: BigInt(senderId),
+                senderId: senderId,
                 createdAt: { gte: today },
             },
         });

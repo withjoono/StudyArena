@@ -26,8 +26,8 @@ export class ActivityController {
     async sendCheer(
         @Body() body: {
             arenaId: number;
-            senderId: number;
-            receiverId: number;
+            senderId: string;
+            receiverId: string;
             type?: string;
             message?: string;
         },
@@ -42,7 +42,7 @@ export class ActivityController {
         @Query('limit') limit?: string,
     ) {
         return this.activityService.getReceivedCheers(
-            parseInt(receiverId, 10),
+            receiverId,
             limit ? parseInt(limit, 10) : 20,
         );
     }
@@ -50,6 +50,6 @@ export class ActivityController {
     /** 오늘 보낸 응원 수 */
     @Get('cheer/count')
     async getTodayCheerCount(@Query('senderId') senderId: string) {
-        return this.activityService.getTodayCheerCount(parseInt(senderId, 10));
+        return this.activityService.getTodayCheerCount(senderId);
     }
 }
