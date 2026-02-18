@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Menu, Bell, LogOut, Swords, Share2, CreditCard } from 'lucide-react';
+import { Menu, Bell, LogOut, Swords, Users, Wallet } from 'lucide-react';
 import { useAuthStore } from '../stores';
 import { cn } from '../lib/utils';
 import { Footer } from './footer';
@@ -50,14 +50,14 @@ export default function Layout() {
     return (
         <div className="min-h-screen flex flex-col bg-background">
             {/* ─── Header (토스 스타일 + Arena 악센트) ─── */}
-            <header className="gb-header" style={{ backdropFilter: 'blur(12px)', background: 'rgba(255,255,255,0.92)' }}>
+            <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white">
                 <div className="mx-auto max-w-7xl flex h-14 items-center justify-between px-4 lg:px-6">
                     {/* ─── Logo ─── */}
-                    <Link to="/" className="gb-header-brand">
-                        <div className="h-8 w-8 lg:h-9 lg:w-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
+                    <Link to="/" className="flex shrink-0 items-center gap-2" style={{ textDecoration: 'none' }}>
+                        <div className="h-8 w-8 lg:h-9 lg:w-9 rounded-lg flex items-center justify-center bg-orange-500">
                             <Swords className="h-5 w-5 lg:h-5 lg:w-5 text-white" />
                         </div>
-                        <span className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--color-primary)' }}>Study Arena</span>
+                        <span className="font-bold text-[15px] tracking-tight text-orange-600">Study Arena</span>
                     </Link>
 
                     {/* ─── Desktop Navigation (플랫 메인 메뉴) ─── */}
@@ -68,9 +68,10 @@ export default function Layout() {
                                     key={item.path}
                                     to={item.path}
                                     className={cn(
-                                        'gb-header-nav-link',
+                                        'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
                                         location.pathname === item.path
-                                        && 'active'
+                                            ? 'text-orange-600 bg-orange-50'
+                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                     )}
                                 >
                                     {item.label}
@@ -83,35 +84,36 @@ export default function Layout() {
                     <div className="hidden lg:flex items-center gap-1">
                         {isLoggedIn ? (
                             <>
-                                {/* 공유 */}
-                                <button
-                                    className="relative p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                                    title="공유"
-                                >
-                                    <Share2 className="h-5 w-5" />
-                                </button>
-
                                 {/* 결제 */}
                                 <button
-                                    className="relative p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
                                     title="결제"
                                 >
-                                    <CreditCard className="h-5 w-5" />
+                                    <Wallet className="h-5 w-5" />
                                 </button>
 
                                 {/* 알림 */}
                                 <button
-                                    className="relative p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                                     title="알림"
                                 >
                                     <Bell className="h-5 w-5" />
+                                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
+                                </button>
+
+                                {/* 계정연동 */}
+                                <button
+                                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                                    title="계정연동"
+                                >
+                                    <Users className="h-5 w-5" />
                                 </button>
 
                                 {/* 로그아웃 Dialog */}
                                 <DialogPrimitive.Root open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
                                     <DialogPrimitive.Trigger asChild>
                                         <button
-                                            className="ml-1 p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                                            className="ml-1 relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:text-red-500 hover:bg-gray-100 transition-colors"
                                             title="로그아웃"
                                         >
                                             <LogOut className="h-5 w-5" />
@@ -146,7 +148,7 @@ export default function Layout() {
                         ) : (
                             <button
                                 onClick={redirectToLogin}
-                                className="gb-btn gb-btn-primary gb-btn-sm" style={{ borderRadius: '9999px' }}
+                                className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-sm font-medium transition-colors"
                             >
                                 로그인
                             </button>
@@ -212,14 +214,14 @@ export default function Layout() {
 
                                     {/* 모바일 아이콘 메뉴 */}
                                     <div className="flex items-center gap-2 px-3 py-2">
-                                        <button className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="공유">
-                                            <Share2 className="h-5 w-5" />
+                                        <button className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="결제">
+                                            <Wallet className="h-5 w-5" />
                                         </button>
-                                        <button className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="결제">
-                                            <CreditCard className="h-5 w-5" />
-                                        </button>
-                                        <button className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="알림">
+                                        <button className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="알림">
                                             <Bell className="h-5 w-5" />
+                                        </button>
+                                        <button className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="계정연동">
+                                            <Users className="h-5 w-5" />
                                         </button>
                                     </div>
 
