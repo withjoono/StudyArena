@@ -11,6 +11,11 @@ export default function JoinArenaPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const isLoggedIn = !!localStorage.getItem('accessToken');
+        if (!isLoggedIn) {
+            setError('로그인해야 이용할 수 있습니다.');
+            return;
+        }
         if (!inviteCode.trim()) {
             setError('초대 코드를 입력해주세요.');
             return;

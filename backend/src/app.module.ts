@@ -14,6 +14,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { RankingModule } from './ranking/ranking.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { AdminModule } from './admin/admin.module';
+import { StudyGroupModule } from './study-group/study-group.module';
 
 @Module({
     imports: [
@@ -44,6 +45,7 @@ import { AdminModule } from './admin/admin.module';
         RankingModule,
         TeacherModule,
         AdminModule,
+        StudyGroupModule,
     ],
 })
 export class AppModule { }

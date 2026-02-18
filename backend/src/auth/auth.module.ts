@@ -14,12 +14,15 @@ import { HubPermissionGuard } from './guards/hub-permission.guard';
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret: configService.get('AUTH_SECRET') || 'studyarena-secret-key-change-in-production',
-                signOptions: {
-                    expiresIn: '2h',
-                },
-            }),
+            useFactory: (configService: ConfigService) => {
+                const secretBase64 = configService.get('AUTH_SECRET') || 'studyarena-secret-key-change-in-production';
+                return {
+                    secret: Buffer.from(secretBase64, 'base64'),
+                    signOptions: {
+                        expiresIn: '2h',
+                    },
+                };
+            },
         }),
     ],
     controllers: [AuthController],

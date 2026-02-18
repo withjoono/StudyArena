@@ -13,6 +13,7 @@ model Arena {
   arenaCode   String   @unique @map("arena_code") @db.VarChar(20)
   name        String   @db.VarChar(100)
   description String?  @db.Text
+  type        String   @default("CLASS") @db.VarChar(20) // CLASS (반), STUDY_GROUP (스터디그룹)
   ownerId     BigInt   @map("owner_id")
   inviteCode  String   @unique @map("invite_code") @db.VarChar(10)
   maxMembers  Int      @default(50) @map("max_members")
@@ -23,6 +24,7 @@ model Arena {
   // Relations
   members   ArenaMember[]
   snapshots DailySnapshot[]
+  studyGroupComments StudyGroupComment[]
 
   @@index([ownerId], name: "idx_sa_arena_owner")
   @@index([inviteCode], name: "idx_sa_arena_invite")
@@ -44,6 +46,8 @@ model ArenaMember {
   arena      Arena           @relation(fields: [arenaId], references: [id], onDelete: Cascade)
   authMember AuthMember?     @relation(fields: [authMemberId], references: [id])
   snapshots  DailySnapshot[]
+  writtenComments StudyGroupComment[] @relation("WrittenComments")
+  receivedComments StudyGroupComment[] @relation("ReceivedComments")
 
   @@unique([arenaId, studentId], name: "uk_sa_arena_member")
   @@index([arenaId], name: "idx_sa_member_arena")
@@ -2191,4 +2195,27 @@ enum ss_university_establishment_type_enum {
   National @map("국립")
   Private @map("사립")
   EMPTY_ENUM_VALUE @map("")
+}
+
+/// 스터디그룹 플래너 코멘트
+model StudyGroupComment {
+  id             BigInt   @id @default(autoincrement())
+  arenaId        BigInt   @map("arena_id")
+  writerId       BigInt   @map("writer_id") // ArenaMember ID
+  targetMemberId BigInt   @map("target_member_id") // ArenaMember ID
+  targetDate     DateTime @map("target_date") @db.Date
+  content        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  arena        Arena       @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  writer       ArenaMember @relation("WrittenComments", fields: [writerId], references: [id], onDelete: Cascade)
+  targetMember ArenaMember @relation("ReceivedComments", fields: [targetMemberId], references: [id], onDelete: Cascade)
+
+  @@index([arenaId], name: "idx_sg_comment_arena")
+  @@index([writerId], name: "idx_sg_comment_writer")
+  @@index([targetMemberId], name: "idx_sg_comment_target")
+  @@index([targetDate], name: "idx_sg_comment_date")
+  @@map("sa_study_group_comment")
 }

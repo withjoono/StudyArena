@@ -12,6 +12,11 @@ export default function CreateArenaPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const isLoggedIn = !!localStorage.getItem('accessToken');
+        if (!isLoggedIn) {
+            setError('로그인해야 이용할 수 있습니다.');
+            return;
+        }
         if (!name.trim()) {
             setError('아레나 이름을 입력해주세요.');
             return;

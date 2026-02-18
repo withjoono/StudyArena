@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// 개발환경: Vite proxy로 /api → localhost:4006, 프로덕션: 실제 백엔드 URL
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -22,9 +25,9 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Redirect to Hub login
-            const hubUrl = 'http://localhost:3000';
+            const hubUrl = import.meta.env.VITE_HUB_URL || 'http://localhost:3000';
             const redirectUrl = encodeURIComponent(window.location.href);
-            window.location.href = `${hubUrl}/login?redirect=${redirectUrl}`;
+            window.location.href = `${hubUrl}/auth/login?redirect=${redirectUrl}`;
         }
         return Promise.reject(error);
     },

@@ -9,11 +9,12 @@ import { Request } from 'express';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     constructor(configService: ConfigService<AllConfigType>) {
-        const authConfig = configService.get('auth', { infer: true });
-        const secret = authConfig?.secret || 'studyarena-secret-key-change-in-production';
+        // Hub JWT는 base64로 인코딩된 시크릿을 Buffer.from(secret, 'base64')로 디코딩하여 서명
+        const secretBase64 = process.env.AUTH_SECRET || 'studyarena-secret-key-change-in-production';
+        const decodedSecret = Buffer.from(secretBase64, 'base64');
         super({
             jwtFromRequest: JwtStrategy.extractJwtFromRequestOrCookie,
-            secretOrKey: secret,
+            secretOrKey: decodedSecret,
         });
     }
 
