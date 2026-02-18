@@ -31,7 +31,7 @@ export class LeaderboardController {
         @Query('period') period: 'daily' | 'weekly' | 'monthly' = 'daily',
     ) {
         const user = (req as any).user;
-        const hubMemberId = parseInt(user.jti, 10);
+        const hubMemberId = user.jti;
         return this.leaderboardService.getMyRanking(parseInt(arenaId, 10), hubMemberId, period);
     }
 }

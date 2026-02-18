@@ -17,7 +17,7 @@ export class ArenaController {
         @Body() body: { name: string; description?: string },
     ) {
         const user = (req as any).user;
-        const memberId = parseInt(user.jti, 10);
+        const memberId = user.jti;
         return this.arenaService.createArena(memberId, body.name, body.description);
     }
 
@@ -27,7 +27,7 @@ export class ArenaController {
     @Get()
     async getMyArenas(@Req() req: Request) {
         const user = (req as any).user;
-        const memberId = parseInt(user.jti, 10);
+        const memberId = user.jti;
         return this.arenaService.getMyArenas(memberId);
     }
 
@@ -45,7 +45,7 @@ export class ArenaController {
     @Get(':id/membership')
     async getMyMembership(@Req() req: Request, @Param('id') arenaId: string) {
         const user = (req as any).user;
-        const hubMemberId = parseInt(user.jti, 10);
+        const hubMemberId = user.jti;
         return this.arenaService.getMyMembership(parseInt(arenaId, 10), hubMemberId);
     }
 
@@ -55,10 +55,10 @@ export class ArenaController {
     @Post('join')
     async joinArena(
         @Req() req: Request,
-        @Body() body: { inviteCode: string; studentId?: number },
+        @Body() body: { inviteCode: string; studentId?: string },
     ) {
         const user = (req as any).user;
-        const hubMemberId = parseInt(user.jti, 10);
+        const hubMemberId = user.jti;
         const studentId = body.studentId || hubMemberId;
         return this.arenaService.joinArena(body.inviteCode, studentId, hubMemberId);
     }
@@ -69,7 +69,7 @@ export class ArenaController {
     @Delete(':id/leave')
     async leaveArena(@Req() req: Request, @Param('id') id: string) {
         const user = (req as any).user;
-        const hubMemberId = parseInt(user.jti, 10);
+        const hubMemberId = user.jti;
         return this.arenaService.leaveArena(parseInt(id, 10), hubMemberId);
     }
 }

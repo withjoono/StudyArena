@@ -16,13 +16,13 @@ export class StudyGroupService {
                 name,
                 arenaCode,
                 inviteCode,
-                ownerId: BigInt(hubId),
+                ownerId: hubId,
                 // @ts-ignore
                 type: 'STUDY_GROUP',
                 members: {
                     create: {
-                        studentId: BigInt(0), // Placeholder if needed or just use hubMemberId logic
-                        hubMemberId: BigInt(hubId),
+                        studentId: hubId,
+                        hubMemberId: hubId,
                         role: 'admin',
                         authMemberId: `sa_${hubId}` // Ensure authMember exists or created
                     }
@@ -36,7 +36,7 @@ export class StudyGroupService {
     async getMyGroups(hubId: string) {
         const members = await this.prisma.arenaMember.findMany({
             where: {
-                hubMemberId: BigInt(hubId),
+                hubMemberId: hubId,
                 arena: {
                     // @ts-ignore
                     type: 'STUDY_GROUP',
@@ -61,7 +61,7 @@ export class StudyGroupService {
         const member = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: BigInt(groupId),
-                hubMemberId: BigInt(hubId)
+                hubMemberId: hubId
             }
         });
 
@@ -109,7 +109,7 @@ export class StudyGroupService {
         });
 
         if (!group) throw new NotFoundException('Group not found');
-        if (group.ownerId !== BigInt(hubId)) throw new ForbiddenException('Only owner can invite');
+        if (group.ownerId !== hubId) throw new ForbiddenException('Only owner can invite');
 
         return { inviteCode: group.inviteCode };
     }
@@ -126,7 +126,7 @@ export class StudyGroupService {
         const existing = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: group.id,
-                hubMemberId: BigInt(hubId)
+                hubMemberId: hubId
             }
         });
 
@@ -136,8 +136,8 @@ export class StudyGroupService {
         await this.prisma.arenaMember.create({
             data: {
                 arenaId: group.id,
-                hubMemberId: BigInt(hubId),
-                studentId: BigInt(0), // Placeholder
+                hubMemberId: hubId,
+                studentId: hubId,
                 role: 'member',
                 authMemberId: `sa_${hubId}`
             }
@@ -151,7 +151,7 @@ export class StudyGroupService {
         const writer = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: BigInt(groupId),
-                hubMemberId: BigInt(hubId)
+                hubMemberId: hubId
             }
         });
 
@@ -174,7 +174,7 @@ export class StudyGroupService {
         const member = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: BigInt(groupId),
-                hubMemberId: BigInt(hubId)
+                hubMemberId: hubId
             }
         });
 

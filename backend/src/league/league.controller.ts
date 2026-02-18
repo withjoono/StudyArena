@@ -27,7 +27,7 @@ export class LeagueController {
         @Param('arenaId') arenaId: string,
     ) {
         const user = (req as any).user;
-        const hubMemberId = parseInt(user.jti, 10);
+        const hubMemberId = user.jti;
         return this.leagueService.getMyLeague(parseInt(arenaId, 10), hubMemberId);
     }
 

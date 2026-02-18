@@ -10,7 +10,7 @@ export class ArenaService {
     /**
      * AuthMember 동기화 (접속 시 실행)
      */
-    private async syncAuthMember(hubMemberId: number) {
+    private async syncAuthMember(hubMemberId: string) {
         const authMemberId = `sa_${hubMemberId}`;
         try {
             await this.prisma.authMember.upsert({
@@ -18,7 +18,7 @@ export class ArenaService {
                 update: { lastLogin: new Date() },
                 create: {
                     id: authMemberId,
-                    hubId: BigInt(hubMemberId),
+                    hubId: hubMemberId,
                     lastLogin: new Date(),
                 },
             });
@@ -31,7 +31,7 @@ export class ArenaService {
     /**
      * 내 멤버십 조회 (및 AuthMember 동기화)
      */
-    async getMyMembership(arenaId: number, hubMemberId: number) {
+    async getMyMembership(arenaId: number, hubMemberId: string) {
         // 1. AuthMember 동기화
         const authMemberId = await this.syncAuthMember(hubMemberId);
 
@@ -39,7 +39,7 @@ export class ArenaService {
         const member = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: BigInt(arenaId),
-                hubMemberId: BigInt(hubMemberId),
+                hubMemberId: hubMemberId,
                 isActive: true,
             },
         });
@@ -58,7 +58,7 @@ export class ArenaService {
 
         return {
             memberId: Number(member.id),
-            studentId: Number(member.studentId),
+            studentId: member.studentId,
             role: member.role,
             joinedAt: member.joinedAt,
             authMemberId,
@@ -88,7 +88,7 @@ export class ArenaService {
     /**
      * 아레나 생성
      */
-    async createArena(ownerId: number, name: string, description?: string) {
+    async createArena(ownerId: string, name: string, description?: string) {
         const arenaCode = await this.generateArenaCode();
         let inviteCode = this.generateInviteCode();
 
@@ -104,7 +104,7 @@ export class ArenaService {
                 arenaCode,
                 name,
                 description,
-                ownerId: BigInt(ownerId),
+                ownerId: ownerId,
                 inviteCode,
             },
         });
@@ -115,8 +115,8 @@ export class ArenaService {
         await this.prisma.arenaMember.create({
             data: {
                 arenaId: arena.id,
-                studentId: BigInt(ownerId),
-                hubMemberId: BigInt(ownerId),
+                studentId: ownerId,
+                hubMemberId: ownerId,
                 authMemberId: authMemberId,
                 role: 'owner',
             },
@@ -128,10 +128,10 @@ export class ArenaService {
     /**
      * 내가 속한 아레나 목록
      */
-    async getMyArenas(memberId: number) {
+    async getMyArenas(memberId: string) {
         const memberships = await this.prisma.arenaMember.findMany({
             where: {
-                hubMemberId: BigInt(memberId),
+                hubMemberId: memberId,
                 isActive: true,
             },
             include: {
@@ -186,8 +186,8 @@ export class ArenaService {
             createdAt: arena.createdAt,
             members: arena.members.map((m) => ({
                 id: Number(m.id),
-                studentId: Number(m.studentId),
-                hubMemberId: m.hubMemberId ? Number(m.hubMemberId) : null,
+                studentId: m.studentId,
+                hubMemberId: m.hubMemberId || null,
                 role: m.role,
                 joinedAt: m.joinedAt,
             })),
@@ -197,7 +197,7 @@ export class ArenaService {
     /**
      * 초대 코드로 아레나 참여
      */
-    async joinArena(inviteCode: string, studentId: number, hubMemberId: number) {
+    async joinArena(inviteCode: string, studentId: string, hubMemberId: string) {
         const arena = await this.prisma.arena.findUnique({
             where: { inviteCode },
             include: {
@@ -224,7 +224,7 @@ export class ArenaService {
             where: {
                 uk_sa_arena_member: {
                     arenaId: arena.id,
-                    studentId: BigInt(studentId),
+                    studentId: studentId,
                 },
             },
         });
@@ -244,8 +244,8 @@ export class ArenaService {
         await this.prisma.arenaMember.create({
             data: {
                 arenaId: arena.id,
-                studentId: BigInt(studentId),
-                hubMemberId: BigInt(hubMemberId),
+                studentId: studentId,
+                hubMemberId: hubMemberId,
                 role: 'member',
             },
         });
@@ -256,11 +256,11 @@ export class ArenaService {
     /**
      * 아레나 탈퇴
      */
-    async leaveArena(arenaId: number, hubMemberId: number) {
+    async leaveArena(arenaId: number, hubMemberId: string) {
         const member = await this.prisma.arenaMember.findFirst({
             where: {
                 arenaId: BigInt(arenaId),
-                hubMemberId: BigInt(hubMemberId),
+                hubMemberId: hubMemberId,
                 isActive: true,
             },
         });

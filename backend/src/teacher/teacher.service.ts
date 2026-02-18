@@ -125,7 +125,7 @@ export class TeacherService {
             if (recentActivity === 0) {
                 lowParticipation.push({
                     memberId: Number(member.id),
-                    studentId: Number(member.studentId),
+                    studentId: member.studentId,
                     daysSinceActivity: thresholdDays,
                 });
             }

@@ -14,7 +14,7 @@ model Arena {
   name        String   @db.VarChar(100)
   description String?  @db.Text
   type        String   @default("CLASS") @db.VarChar(20) // CLASS (반), STUDY_GROUP (스터디그룹)
-  ownerId     BigInt   @map("owner_id")
+  ownerId     String   @map("owner_id") @db.VarChar(30)
   inviteCode  String   @unique @map("invite_code") @db.VarChar(10)
   maxMembers  Int      @default(50) @map("max_members")
   isActive    Boolean  @default(true) @map("is_active")
@@ -35,8 +35,8 @@ model Arena {
 model ArenaMember {
   id           BigInt   @id @default(autoincrement())
   arenaId      BigInt   @map("arena_id")
-  studentId    BigInt   @map("student_id")
-  hubMemberId  BigInt?  @map("hub_member_id")
+  studentId    String   @map("student_id") @db.VarChar(30)
+  hubMemberId  String?  @map("hub_member_id") @db.VarChar(30)
   authMemberId String?  @map("auth_member_id") @db.VarChar(50) // sa_{hubMemberId}
   role         String   @default("member") @db.VarChar(20)
   joinedAt     DateTime @default(now()) @map("joined_at")
@@ -60,7 +60,7 @@ model ArenaMember {
 /// 통합 인증 멤버 (Hub SSO 연동)
 model AuthMember {
   id        String   @id @db.VarChar(50) // sa_{hubMemberId}
-  hubId     BigInt   @unique @map("hub_id")
+  hubId     String   @unique @map("hub_id") @db.VarChar(30)
   createdAt DateTime @default(now()) @map("created_at")
   lastLogin DateTime @default(now()) @map("last_login")
 
@@ -75,7 +75,7 @@ model DailySnapshot {
   id                BigInt   @id @default(autoincrement())
   arenaId           BigInt   @map("arena_id")
   memberId          BigInt   @map("member_id")
-  studentId         BigInt   @map("student_id")
+  studentId         String   @map("student_id") @db.VarChar(30)
   date              DateTime @db.Date
   totalMissions     Int      @default(0) @map("total_missions")
   completedMissions Int      @default(0) @map("completed_missions")
@@ -145,8 +145,8 @@ model MemberLeague {
 model Cheer {
   id         BigInt   @id @default(autoincrement())
   arenaId    BigInt   @map("arena_id")
-  senderId   BigInt   @map("sender_id")   // hubMemberId
-  receiverId BigInt   @map("receiver_id") // hubMemberId
+  senderId   String   @map("sender_id") @db.VarChar(30)   // hubMemberId
+  receiverId String   @map("receiver_id") @db.VarChar(30) // hubMemberId
   type       String   @default("fire") @db.VarChar(20) // fire, sticker, trophy
   message    String?  @db.VarChar(200)
   createdAt  DateTime @default(now()) @map("created_at")

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "gcp-build": "npx prisma generate || true",
+    "gcp-build": "npx prisma generate && npx prisma db push --accept-data-loss && nest build",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
