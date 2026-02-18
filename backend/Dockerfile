@@ -48,4 +48,4 @@ EXPOSE 8080
 ENV PORT=8080
 ENV NODE_ENV=production
 
-CMD ["node", "dist/main"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main"]
