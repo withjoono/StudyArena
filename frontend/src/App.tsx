@@ -16,6 +16,7 @@ import { useAuthStore } from './stores';
 function App() {
     const [ssoReady, setSsoReady] = useState(false);
     const { isLoggedIn } = useAuthStore();
+    const hasSSOCode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('sso_code');
 
     useEffect(() => {
         processSSOLogin().then((loggedIn) => {
@@ -29,7 +30,34 @@ function App() {
         });
     }, []);
 
-    if (!ssoReady) return null;
+    if (!ssoReady) {
+        if (!hasSSOCode) return null;
+        return (
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(4px)',
+            }}>
+                <div style={{
+                    fontSize: '2.5rem',
+                    marginBottom: '1rem',
+                    animation: 'spin 1.2s linear infinite',
+                }}>⏳</div>
+                <p style={{
+                    fontSize: '1.1rem',
+                    color: '#374151',
+                    fontWeight: 500,
+                }}>자동 로그인 중입니다...</p>
+                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
 
     return (
         <Routes>
