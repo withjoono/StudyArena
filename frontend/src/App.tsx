@@ -6,13 +6,13 @@ import DashboardPage from './pages/DashboardPage';
 import ArenaDetailPage from './pages/ArenaDetailPage';
 import CreateArenaPage from './pages/CreateArenaPage';
 import JoinArenaPage from './pages/JoinArenaPage';
-import TeacherPage from './pages/TeacherPage';
+
 import RankingPage from './pages/RankingPage';
 import StudyGroupPage from './pages/StudyGroupPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
 import BattlePage from './pages/BattlePage';
 import BattleDetailPage from './pages/BattleDetailPage';
-import TeacherClassPage from './pages/TeacherClassPage';
+
 import StudyBattlePage from './pages/StudyBattlePage';
 import { processSSOLogin } from './lib/auth';
 
@@ -68,13 +68,13 @@ function App() {
                 <Route path="arena/:id" element={<ArenaDetailPage />} />
                 <Route path="arena/create" element={<CreateArenaPage />} />
                 <Route path="arena/join" element={<JoinArenaPage />} />
-                <Route path="arena/:id/teacher" element={<TeacherPage />} />
+
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="study-group" element={<StudyGroupPage />} />
                 <Route path="study-group/:id" element={<StudyGroupDetailPage />} />
                 <Route path="battle" element={<BattlePage />} />
                 <Route path="battle/:code" element={<BattleDetailPage />} />
-                <Route path="teacher-class" element={<TeacherClassPage />} />
+
                 <Route path="study-battle" element={<StudyBattlePage />} />
             </Route>
         </Routes>

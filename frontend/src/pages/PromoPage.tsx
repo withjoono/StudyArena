@@ -16,19 +16,7 @@ const services = [
         text: 'text-orange-600',
         link: '/arena/create',
     },
-    {
-        title: '담당선생님반',
-        subtitle: '체계적 학습 관리',
-        description: '선생님이 반을 만들고, 학생들을 넣어 학습을 체계적으로 관리합니다.',
-        features: ['학습 관리', '일간 통계', '주간 통계', '월간 통계'],
-        icon: GraduationCap,
-        color: 'indigo',
-        gradient: 'from-indigo-500 to-violet-500',
-        bg: 'bg-indigo-50',
-        border: 'border-indigo-200',
-        text: 'text-indigo-600',
-        link: '/teacher-class',
-    },
+
     {
         title: '스터디그룹',
         subtitle: '함께 공부하자',

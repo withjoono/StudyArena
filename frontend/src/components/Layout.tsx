@@ -16,7 +16,7 @@ const mainNavItems = [
     { path: HUB_URL, label: '전체서비스', icon: LayoutGrid, external: true },
     { path: '/', label: '홈' },
     { path: '/arena/create', label: '동일목표반' },
-    { path: '/teacher-class', label: '담당선생님반' },
+
     { path: '/study-group', label: '스터디그룹' },
     { path: '/battle', label: '모의고사배틀' },
     { path: '/study-battle', label: '스터디 배틀' },
