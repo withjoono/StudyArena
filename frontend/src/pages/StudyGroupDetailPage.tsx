@@ -1,236 +1,276 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStudyGroupDetails, inviteStudyGroup, getGroupComments, addGroupComment } from '../lib/study-group-api';
-import { Users, Calendar, Award, MessageSquare, Copy, BookOpen } from 'lucide-react';
+import {
+    Users, Calendar, Trophy, MessageSquare, Copy, ChevronLeft,
+    Crown, Medal, Clock, Target
+} from 'lucide-react';
+import {
+    getStudyGroupDetails, inviteStudyGroup, getGroupLeaderboard,
+    getGroupComments, addGroupComment
+} from '../lib/study-group-api';
+
+type Period = 'daily' | 'weekly' | 'monthly';
+const periodLabels: Record<Period, string> = { daily: '일간', weekly: '주간', monthly: '월간' };
+
+function formatStudyTime(min: number) {
+    if (min < 60) return `${min}분`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
+}
+
+function getRankIcon(rank: number) {
+    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-500" />;
+    if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />;
+    if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />;
+    return <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-gray-400">{rank}</span>;
+}
 
 export default function StudyGroupDetailPage() {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [group, setGroup] = useState<any>(null);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
+    const [period, setPeriod] = useState<Period>('daily');
+    const [tab, setTab] = useState<'ranking' | 'comments'>('ranking');
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [inviteCode, setInviteCode] = useState('');
+    const [copied, setCopied] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (id) {
             loadDetails();
-            loadComments();
+            loadLeaderboard();
         }
-    }, [id, selectedDate]);
+    }, [id]);
+
+    useEffect(() => {
+        if (id) loadLeaderboard();
+    }, [period]);
 
     const loadDetails = async () => {
-        if (!id) return;
         try {
-            // @ts-ignore
-            const data = await getStudyGroupDetails(id);
+            const data = await getStudyGroupDetails(id!);
             setGroup(data);
-        } catch (error) {
-            console.error(error);
-            // navigate('/study-group'); // Don't redirect, let UI handle no data
-        } finally {
-            setLoading(false);
-        }
+        } catch { navigate('/study-group'); }
+        finally { setLoading(false); }
+    };
+
+    const loadLeaderboard = async () => {
+        try {
+            const data = await getGroupLeaderboard(id!, period);
+            if (Array.isArray(data)) setLeaderboard(data);
+        } catch (e) { console.error('Leaderboard error', e); }
     };
 
     const loadComments = async () => {
-        if (!id) return;
-        // @ts-ignore
         try {
-            const data = await getGroupComments(id, selectedDate);
+            const data = await getGroupComments(id!);
             if (Array.isArray(data)) setComments(data);
-        } catch (error) {
-            console.error(error);
-        }
+        } catch { }
     };
 
     const handleInvite = async () => {
         try {
-            // @ts-ignore
-            const res = await inviteStudyGroup(id);
-            if (res.inviteCode) {
-                navigator.clipboard.writeText(res.inviteCode);
-                alert(`초대 코드 복사됨: ${res.inviteCode}`);
-            }
-        } catch (error) {
-            alert('초대 코드 생성 실패 (권한이 없거나 오류)');
-        }
+            const data = await inviteStudyGroup(id!);
+            setInviteCode(data.inviteCode);
+            navigator.clipboard.writeText(data.inviteCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch { alert('초대 코드 생성에 실패했습니다.'); }
     };
 
     const handleAddComment = async () => {
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || !group?.members?.[0]) return;
         try {
-            // Default target: Comment on the group for the selected date. 
-            // Since API requires targetMemberId, we might default to owner or find a way to represent "Group".
-            // However, the schema supports targetMemberId. 
-            // For now, let's pick the first member (e.g. owner) or the current user themselves as placeholder,
-            // OR finding a specific "Group Board" member? 
-            // A better approach for "Group Wall" is having a NULL targetMemberId in schema, but schema says it's a relation.
-            // WORKAROUND: Send comment to the Group Owner for now.
-            // @ts-ignore
-            const targetId = group.ownerId; // Send to owner
-
-            // @ts-ignore
-            await addGroupComment(id, targetId, selectedDate, newComment);
+            await addGroupComment(
+                id!,
+                group.members[0].id,
+                new Date().toISOString().split('T')[0],
+                newComment,
+            );
             setNewComment('');
             loadComments();
-        } catch (error) {
-            console.error(error);
-            alert('메시지 등록 실패');
-        }
+        } catch { alert('댓글 작성에 실패했습니다.'); }
     };
 
-    if (loading) return <div className="p-10 text-center">Loading...</div>;
-
-    // If loading failed (likely 401) and no group data
-    if (!group) {
+    if (loading) {
         return (
-            <div className="p-10 text-center">
-                <h2 className="text-2xl font-bold text-gray-700 mb-4">로그인이 필요한 페이지입니다</h2>
-                <p className="text-gray-500 mb-6">스터디 그룹의 상세 정보를 보시려면 로그인이 필요합니다.</p>
-                <div className="card-glass p-8 max-w-2xl mx-auto opacity-50 pointer-events-none blur-sm select-none">
-                    {/* Mock UI to show "Frontend Screen" structure */}
-                    <div className="h-8 bg-gray-300 w-1/3 mb-4 rounded"></div>
-                    <div className="h-4 bg-gray-200 w-1/2 mb-8 rounded"></div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="h-32 bg-gray-200 rounded"></div>
-                        <div className="h-32 bg-gray-200 rounded"></div>
-                        <div className="h-32 bg-gray-200 rounded"></div>
-                    </div>
-                </div>
+            <div className="flex items-center justify-center py-20">
+                <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
             </div>
         );
     }
 
+    if (!group) return null;
+
+    // 그룹 총 통계
+    const totalStudyMin = group.members?.reduce((sum: number, m: any) =>
+        sum + (m.snapshots?.reduce((s: number, sn: any) => s + (sn.totalStudyMin || 0), 0) || 0), 0) || 0;
+    const avgAchievement = group.members?.length > 0
+        ? Math.round(group.members.reduce((sum: number, m: any) =>
+            sum + (m.snapshots?.[0]?.achievementPct || 0), 0) / group.members.length)
+        : 0;
+
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-8">
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            STUDY GROUP
-                        </span>
-                        <span className="text-gray-500 text-sm">{new Date(group.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <h1 className="text-4xl font-bold text-white mb-2">{group.name}</h1>
-                    <p className="text-gray-400">{group.description || '함께 공부하는 멤버들과 소통하며 성장하세요.'}</p>
-                </div>
-                <div className="flex gap-2">
+        <div className="space-y-6">
+            {/* 뒤로가기 */}
+            <button onClick={() => navigate('/study-group')} className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+                스터디 그룹 목록
+            </button>
+
+            {/* 그룹 헤더 */}
+            <div className="bg-gradient-to-r from-indigo-500 to-violet-500 rounded-2xl p-6 text-white">
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-2xl font-bold">{group.name}</h1>
                     <button
                         onClick={handleInvite}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-lg transition-colors"
+                        className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
-                        <Copy size={18} />
-                        <span>초대코드 복사</span>
+                        <Copy className="w-4 h-4" />
+                        {copied ? '복사됨!' : inviteCode || '초대 코드'}
                     </button>
-                    {/* Add more actions if needed */}
                 </div>
-            </div>
-
-            {/* Member Stats Grid */}
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Users className="text-indigo-400" />
-                <span>멤버 현황 ({group.members.length})</span>
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
-                {group.members.map((member: any) => (
-                    <div key={member.id} className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden hover:border-indigo-500/30 transition-colors">
-                        <div className="p-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-lg">
-                                    {member.nickname[0]}
-                                </div>
-                                <div>
-                                    <div className="font-bold">{member.nickname}</div>
-                                    <div className="text-xs text-gray-400 capitalize">{member.role}</div>
-                                </div>
-                            </div>
-                            {/* Placeholder for interactions */}
-                        </div>
-                        <div className="p-4">
-                            <div className="flex justify-between items-center mb-4 text-sm text-gray-400">
-                                <span>최근 학습 기록</span>
-                            </div>
-                            <div className="space-y-3">
-                                {member.snapshots && member.snapshots.length > 0 ? (
-                                    member.snapshots.map((snap: any, i: number) => (
-                                        <div key={i} className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">{new Date(snap.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</span>
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-mono text-indigo-300">{snap.totalStudyMin}분</span>
-                                                <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-indigo-500" style={{ width: `${Math.min(snap.achievementPct, 100)}%` }}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center text-gray-500 py-4 text-sm">기록 없음</div>
-                                )}
-                            </div>
-                        </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                        <Users className="w-5 h-5 mx-auto mb-1 opacity-80" />
+                        <div className="text-xl font-bold">{group.members?.length || 0}</div>
+                        <div className="text-xs opacity-70">구성원</div>
                     </div>
-                ))}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                        <Clock className="w-5 h-5 mx-auto mb-1 opacity-80" />
+                        <div className="text-xl font-bold">{formatStudyTime(totalStudyMin)}</div>
+                        <div className="text-xs opacity-70">총 학습시간</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                        <Target className="w-5 h-5 mx-auto mb-1 opacity-80" />
+                        <div className="text-xl font-bold">{avgAchievement}%</div>
+                        <div className="text-xs opacity-70">평균 달성률</div>
+                    </div>
+                </div>
             </div>
 
-            {/* Comments Section */}
-            <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <MessageSquare className="text-indigo-400" />
-                    <span>응원 한마디</span>
-                </h3>
+            {/* 탭 */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                    onClick={() => { setTab('ranking'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'ranking' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <Trophy className="w-4 h-4" /> 랭킹
+                </button>
+                <button
+                    onClick={() => { setTab('comments'); loadComments(); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'comments' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <MessageSquare className="w-4 h-4" /> 댓글
+                </button>
+            </div>
 
-                <div className="flex gap-4 mb-6">
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500"
-                    />
-                    <input
-                        type="text"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="멤버들에게 응원의 메시지를 남겨보세요!"
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                    />
-                    <button
-                        onClick={handleAddComment}
-                        className="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg"
-                    >
-                        등록
-                    </button>
-                </div>
-
+            {/* 랭킹 탭 */}
+            {tab === 'ranking' && (
                 <div className="space-y-4">
-                    {comments.map((comment: any) => (
-                        <div key={comment.id} className="bg-slate-900/50 p-4 rounded-lg flex gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm">
-                                {(comment.writerName || '?')[0]}
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-sm">{comment.writerName}</span>
-                                    <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</span>
-                                </div>
-                                <p className="text-gray-300">{comment.content}</p>
-                            </div>
-                        </div>
-                    ))}
-                    {comments.length === 0 && (
-                        <div className="text-center text-gray-500 py-4">
-                            아직 작성된 메시지가 없습니다.
-                        </div>
-                    )}
-                </div>
-            </div>
+                    {/* 기간 선택 */}
+                    <div className="flex gap-2">
+                        {(Object.entries(periodLabels) as [Period, string][]).map(([p, label]) => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${period === p
+                                    ? 'bg-indigo-500 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
 
-            {/* Spacer */}
-            <div className="h-20"></div>
+                    {/* 리더보드 */}
+                    <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+                        {leaderboard.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400">
+                                <Trophy className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                <p>아직 학습 데이터가 없습니다.</p>
+                                <p className="text-sm mt-1">StudyPlanner에서 학습을 시작하세요!</p>
+                            </div>
+                        ) : (
+                            leaderboard.map((entry) => (
+                                <div key={entry.memberId} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
+                                    {/* 순위 */}
+                                    <div className="w-8 flex justify-center">{getRankIcon(entry.rank)}</div>
+                                    {/* 정보 */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-gray-900 truncate">
+                                            학생 #{entry.studentId || entry.memberId}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {formatStudyTime(entry.totalStudyMin)}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Target className="w-3 h-3" />
+                                                달성 {entry.achievementPct}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* 점수 */}
+                                    <div className="text-right">
+                                        <div className="text-lg font-bold text-indigo-600">{entry.score}</div>
+                                        <div className="text-xs text-gray-400">점</div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* 댓글 탭 */}
+            {tab === 'comments' && (
+                <div className="space-y-4">
+                    {/* 댓글 입력 */}
+                    <div className="flex gap-3">
+                        <input
+                            type="text"
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="응원 메시지를 남겨보세요..."
+                            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                        />
+                        <button
+                            onClick={handleAddComment}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            등록
+                        </button>
+                    </div>
+
+                    {/* 댓글 목록 */}
+                    <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+                        {comments.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400">
+                                <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                <p>아직 댓글이 없습니다.</p>
+                            </div>
+                        ) : (
+                            comments.map((c: any) => (
+                                <div key={c.id} className="p-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-semibold text-sm text-gray-900">{c.writerName || '익명'}</span>
+                                        <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600">{c.content}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

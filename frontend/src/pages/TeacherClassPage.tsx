@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Users, BookOpen, Loader2, ChevronRight, Plus } from 'lucide-react';
+import { GraduationCap, Users, BookOpen, Loader2, ChevronRight, Plus, UserPlus } from 'lucide-react';
 import { arenaApi } from '../lib/api';
 import { useAuthStore } from '../stores';
 import { redirectToLogin } from '../lib/auth';
@@ -18,6 +18,10 @@ export default function TeacherClassPage() {
     const { isLoggedIn } = useAuthStore();
     const [arenas, setArenas] = useState<Arena[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newName, setNewName] = useState('');
+    const [newDesc, setNewDesc] = useState('');
+    const [joinCode, setJoinCode] = useState('');
 
     useEffect(() => {
         if (isLoggedIn) {
@@ -36,6 +40,29 @@ export default function TeacherClassPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCreate = async () => {
+        if (!newName.trim()) return;
+        try {
+            const res = await arenaApi.createArena({
+                name: newName.trim(),
+                description: newDesc.trim() || undefined,
+            });
+            setNewName('');
+            setNewDesc('');
+            setIsCreating(false);
+            navigate(`/arena/${res.data.id}/teacher`);
+        } catch { alert('반 생성에 실패했습니다.'); }
+    };
+
+    const handleJoin = async () => {
+        if (!joinCode.trim()) return;
+        try {
+            const res = await arenaApi.joinArena(joinCode.trim());
+            setJoinCode('');
+            navigate(`/arena/${res.data.arenaId}/teacher`);
+        } catch { alert('참여에 실패했습니다. 코드를 확인하세요.'); }
     };
 
     if (!isLoggedIn) {
@@ -100,26 +127,81 @@ export default function TeacherClassPage() {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     <GraduationCap className="w-7 h-7 text-indigo-500" />
                     담당선생님반
                 </h1>
-                <button
-                    onClick={() => navigate('/arena/join')}
-                    className="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors text-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    초대코드로 참여
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsCreating(!isCreating)}
+                        className="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors text-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        반 만들기
+                    </button>
+                </div>
+            </div>
+
+            {/* 반 만들기 폼 */}
+            {isCreating && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+                    <h3 className="font-semibold text-gray-900 mb-3">새 반 만들기</h3>
+                    <div className="space-y-3">
+                        <input
+                            type="text"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            placeholder="반 이름 (예: 3학년 1반)"
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                        />
+                        <input
+                            type="text"
+                            value={newDesc}
+                            onChange={(e) => setNewDesc(e.target.value)}
+                            placeholder="설명 (선택)"
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <div className="flex gap-2">
+                            <button onClick={handleCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+                                생성
+                            </button>
+                            <button onClick={() => setIsCreating(false)} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+                                취소
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 초대 코드 참여 */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-indigo-500" />
+                    초대 코드로 참여하기
+                </h3>
+                <div className="flex gap-3">
+                    <input
+                        type="text"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        placeholder="초대 코드 입력"
+                        className="border border-gray-300 rounded-lg px-4 py-2 w-60 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase tracking-wider"
+                        onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                    />
+                    <button onClick={handleJoin} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+                        참여
+                    </button>
+                </div>
             </div>
 
             {arenas.length === 0 ? (
                 <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
                     <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-4">아직 참여한 선생님반이 없습니다</p>
-                    <p className="text-sm text-gray-400">선생님에게 초대 코드를 받아 참여하세요</p>
+                    <p className="text-gray-500 mb-2">아직 참여한 선생님반이 없습니다</p>
+                    <p className="text-sm text-gray-400">새 반을 만들거나 초대 코드로 참여하세요</p>
                 </div>
             ) : (
                 <div className="space-y-3">
