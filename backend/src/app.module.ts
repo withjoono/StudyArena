@@ -15,6 +15,7 @@ import { RankingModule } from './ranking/ranking.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { AdminModule } from './admin/admin.module';
 import { StudyGroupModule } from './study-group/study-group.module';
+import { ExamBattleModule } from './exam-battle/exam-battle.module';
 
 @Module({
     imports: [
@@ -46,6 +47,7 @@ import { StudyGroupModule } from './study-group/study-group.module';
         TeacherModule,
         AdminModule,
         StudyGroupModule,
+        ExamBattleModule,
     ],
 })
 export class AppModule { }

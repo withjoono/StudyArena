@@ -24,23 +24,9 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // SSO 코드가 URL에 있으면 리다이렉트하지 않음 (SSO 처리 중)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('sso_code')) {
-                return Promise.reject(error);
-            }
-
-            // 이미 리다이렉트를 시도했으면 무한 루프 방지
-            const redirectAttempted = sessionStorage.getItem('studyarena_redirect_attempted');
-            if (redirectAttempted) {
-                return Promise.reject(error);
-            }
-
-            // Redirect to Hub login (1회만)
-            sessionStorage.setItem('studyarena_redirect_attempted', 'true');
-            const hubUrl = import.meta.env.VITE_HUB_URL || 'http://localhost:3000';
-            const redirectUrl = encodeURIComponent(window.location.href);
-            window.location.href = `${hubUrl}/auth/login?redirect=${redirectUrl}`;
+            // 토큰이 만료되었거나 무효한 경우 로컬 토큰 정리 (자동 리다이렉트 안 함)
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
         }
         return Promise.reject(error);
     },
@@ -153,6 +139,36 @@ export const adminApi = {
         api.delete(`/admin/member/${memberId}`),
     cleanup: (days?: number) =>
         api.post('/admin/cleanup', null, { params: { days } }),
+};
+
+// Exam Battle API
+export const examBattleApi = {
+    create: (data: {
+        opponentId?: string;
+        opponentNickname?: string;
+        examType: string;
+        examName: string;
+        examId?: number;
+        betEnabled?: boolean;
+        betAmount?: number;
+        betDescription?: string;
+        timeLimitMin?: number;
+    }) => api.post('/exam-battle', data),
+    getMyBattles: () => api.get('/exam-battle/my'),
+    getMyRecord: () => api.get('/exam-battle/record'),
+    getRecord: (memberId: string) => api.get(`/exam-battle/record/${memberId}`),
+    getBattleByCode: (code: string) => api.get(`/exam-battle/code/${code}`),
+    getBattleById: (id: number) => api.get(`/exam-battle/${id}`),
+    accept: (id: number) => api.put(`/exam-battle/${id}/accept`),
+    reject: (id: number) => api.put(`/exam-battle/${id}/reject`),
+    start: (id: number) => api.put(`/exam-battle/${id}/start`),
+    submitScore: (id: number, data: {
+        rawScore?: number;
+        standardScore?: number;
+        grade?: number;
+        percentile?: number;
+        timeTakenMin?: number;
+    }) => api.post(`/exam-battle/${id}/submit`, data),
 };
 
 export default api;

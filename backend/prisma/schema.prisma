@@ -193,6 +193,77 @@ model MemberBadge {
   @@map("sa_member_badge")
 }
 
+// ================================================================
+// 모의고사 배틀 시스템
+// ================================================================
+
+/// 모의고사 배틀 매치
+model ExamBattle {
+  id                BigInt   @id @default(autoincrement())
+  battleCode        String   @unique @map("battle_code") @db.VarChar(20)
+  challengerId      String   @map("challenger_id") @db.VarChar(30)
+  opponentId        String?  @map("opponent_id") @db.VarChar(30)
+  opponentNickname  String?  @map("opponent_nickname") @db.VarChar(50)
+  status            String   @default("pending") @db.VarChar(20) // pending, accepted, in_progress, completed, cancelled
+  examType          String   @map("exam_type") @db.VarChar(30) // education_office, evaluation_board, sunung, private
+  examId            Int?     @map("exam_id")
+  examName          String   @map("exam_name") @db.VarChar(200)
+  betEnabled        Boolean  @default(false) @map("bet_enabled")
+  betAmount         Int?     @map("bet_amount")
+  betDescription    String?  @map("bet_description") @db.VarChar(200)
+  startTime         DateTime? @map("start_time")
+  endTime           DateTime? @map("end_time")
+  timeLimitMin      Int      @default(90) @map("time_limit_min")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  results BattleResult[]
+
+  @@index([challengerId], name: "idx_sa_battle_challenger")
+  @@index([opponentId], name: "idx_sa_battle_opponent")
+  @@index([status], name: "idx_sa_battle_status")
+  @@map("sa_exam_battle")
+}
+
+/// 배틀 결과 (참가자별)
+model BattleResult {
+  id                   BigInt    @id @default(autoincrement())
+  battleId             BigInt    @map("battle_id")
+  participantId        String    @map("participant_id") @db.VarChar(30)
+  participantNickname  String?   @map("participant_nickname") @db.VarChar(50)
+  rawScore             Decimal?  @map("raw_score") @db.Decimal(5, 2)
+  standardScore        Int?      @map("standard_score")
+  grade                Int?
+  percentile           Int?
+  isWinner             Boolean?  @map("is_winner")
+  submittedAt          DateTime? @map("submitted_at")
+  timeTakenMin         Int?      @map("time_taken_min")
+
+  battle ExamBattle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+
+  @@unique([battleId, participantId], name: "uk_sa_battle_result")
+  @@index([participantId], name: "idx_sa_br_participant")
+  @@map("sa_battle_result")
+}
+
+/// 배틀 전적 누적
+model BattleRecord {
+  id            BigInt   @id @default(autoincrement())
+  memberId      String   @unique @map("member_id") @db.VarChar(30)
+  totalBattles  Int      @default(0) @map("total_battles")
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  draws         Int      @default(0)
+  winRate       Decimal  @default(0) @map("win_rate") @db.Decimal(5, 2)
+  avgScore      Decimal  @default(0) @map("avg_score") @db.Decimal(5, 2)
+  bestScore     Decimal  @default(0) @map("best_score") @db.Decimal(5, 2)
+  currentStreak Int      @default(0) @map("current_streak")
+  maxStreak     Int      @default(0) @map("max_streak")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("sa_battle_record")
+}
+
 model application_rate_history {
   id                         Int      @id(map: "PK_af0e4736d0a20fa11826e4b5dfe") @default(autoincrement())
   university_code            String   @db.VarChar(20)

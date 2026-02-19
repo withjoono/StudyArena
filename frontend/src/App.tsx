@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
-import PromoPage from './pages/PromoPage';
+
 import ArenaDetailPage from './pages/ArenaDetailPage';
 import CreateArenaPage from './pages/CreateArenaPage';
 import JoinArenaPage from './pages/JoinArenaPage';
@@ -10,12 +10,12 @@ import TeacherPage from './pages/TeacherPage';
 import RankingPage from './pages/RankingPage';
 import StudyGroupPage from './pages/StudyGroupPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
+import BattlePage from './pages/BattlePage';
+import BattleDetailPage from './pages/BattleDetailPage';
 import { processSSOLogin } from './lib/auth';
-import { useAuthStore } from './stores';
 
 function App() {
     const [ssoReady, setSsoReady] = useState(false);
-    const { isLoggedIn } = useAuthStore();
     const hasSSOCode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('sso_code');
 
     useEffect(() => {
@@ -62,7 +62,7 @@ function App() {
     return (
         <Routes>
             <Route path="/" element={<Layout />}>
-                <Route index element={isLoggedIn ? <DashboardPage /> : <PromoPage />} />
+                <Route index element={<DashboardPage />} />
                 <Route path="arena/:id" element={<ArenaDetailPage />} />
                 <Route path="arena/create" element={<CreateArenaPage />} />
                 <Route path="arena/join" element={<JoinArenaPage />} />
@@ -70,6 +70,8 @@ function App() {
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="study-group" element={<StudyGroupPage />} />
                 <Route path="study-group/:id" element={<StudyGroupDetailPage />} />
+                <Route path="battle" element={<BattlePage />} />
+                <Route path="battle/:code" element={<BattleDetailPage />} />
             </Route>
         </Routes>
     );

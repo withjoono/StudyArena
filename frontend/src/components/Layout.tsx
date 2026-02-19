@@ -13,6 +13,7 @@ import * as SeparatorPrimitive from '@radix-ui/react-separator';
 const mainNavItems = [
     { path: '/', label: 'Arena 홈' },
     { path: '/study-group', label: '스터디그룹' },
+    { path: '/battle', label: '모의고사 배틀' },
     { path: '/arena/create', label: 'Arena 만들기' },
     { path: '/arena/join', label: '참여하기' },
     { path: '/ranking', label: '랭킹' },
