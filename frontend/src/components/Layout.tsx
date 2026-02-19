@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Menu, Bell, LogOut, Swords, Users } from 'lucide-react';
+import { Menu, Bell, LogOut, Swords, Users, LayoutGrid } from 'lucide-react';
 import { WonCircle } from './icons';
 import { useAuthStore } from '../stores';
 import { cn } from '../lib/utils';
@@ -9,14 +9,17 @@ import { redirectToLogin, logout } from '../lib/auth';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as SeparatorPrimitive from '@radix-ui/react-separator';
 
+const HUB_URL = import.meta.env.VITE_HUB_URL || 'https://www.geobukschool.kr';
+
 // ───────────────────────── 메인 네비게이션 ─────────────────────────
 const mainNavItems = [
-    { path: '/', label: 'Arena 홈' },
+    { path: HUB_URL, label: '전체서비스', icon: LayoutGrid, external: true },
+    { path: '/', label: '홈' },
+    { path: '/arena/create', label: '동일목표반' },
+    { path: '/teacher-class', label: '담당선생님반' },
     { path: '/study-group', label: '스터디그룹' },
-    { path: '/battle', label: '모의고사 배틀' },
-    { path: '/arena/create', label: 'Arena 만들기' },
-    { path: '/arena/join', label: '참여하기' },
-    { path: '/ranking', label: '랭킹' },
+    { path: '/battle', label: '모의고사배틀' },
+    { path: '/study-battle', label: '스터디 배틀' },
 ];
 
 export default function Layout() {
@@ -63,24 +66,31 @@ export default function Layout() {
                     </Link>
 
                     {/* ─── Desktop Navigation (플랫 메인 메뉴) ─── */}
-                    {isLoggedIn && (
-                        <nav className="hidden lg:flex items-center gap-1">
-                            {mainNavItems.map((item) => (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    className={cn(
-                                        'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-                                        location.pathname === item.path
-                                            ? 'text-orange-600 bg-orange-50'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                                    )}
-                                >
+                    <nav className="hidden lg:flex items-center gap-1">
+                        {mainNavItems.map((item) => {
+                            const isActive = !item.external && location.pathname === item.path;
+                            const cls = cn(
+                                'flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                                isActive
+                                    ? 'text-orange-600 bg-orange-50'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            );
+                            if (item.external) {
+                                return (
+                                    <a key={item.path} href={item.path} className={cls}>
+                                        {item.icon && <item.icon className="w-4 h-4" />}
+                                        {item.label}
+                                    </a>
+                                );
+                            }
+                            return (
+                                <Link key={item.path} to={item.path} className={cls}>
+                                    {item.icon && <item.icon className="w-4 h-4" />}
                                     {item.label}
                                 </Link>
-                            ))}
-                        </nav>
-                    )}
+                            );
+                        })}
+                    </nav>
 
                     {/* ─── Desktop Right Section ─── */}
                     <div className="hidden lg:flex items-center gap-1">
@@ -196,21 +206,29 @@ export default function Layout() {
                             {/* 메인 메뉴 */}
                             {isLoggedIn ? (
                                 <>
-                                    {mainNavItems.map((item) => (
-                                        <Link
-                                            key={item.path}
-                                            to={item.path}
-                                            onClick={() => setMobileOpen(false)}
-                                            className={cn(
-                                                'flex h-10 items-center rounded-lg px-3 text-sm transition-colors',
-                                                location.pathname === item.path
-                                                    ? 'text-arena-400 bg-arena-500/10 font-medium'
-                                                    : 'text-white/70 hover:text-white hover:bg-white/5'
-                                            )}
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    ))}
+                                    {mainNavItems.map((item) => {
+                                        const isActive = !item.external && location.pathname === item.path;
+                                        const cls = cn(
+                                            'flex h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors',
+                                            isActive
+                                                ? 'text-arena-400 bg-arena-500/10 font-medium'
+                                                : 'text-white/70 hover:text-white hover:bg-white/5'
+                                        );
+                                        if (item.external) {
+                                            return (
+                                                <a key={item.path} href={item.path} onClick={() => setMobileOpen(false)} className={cls}>
+                                                    {item.icon && <item.icon className="w-4 h-4" />}
+                                                    {item.label}
+                                                </a>
+                                            );
+                                        }
+                                        return (
+                                            <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)} className={cls}>
+                                                {item.icon && <item.icon className="w-4 h-4" />}
+                                                {item.label}
+                                            </Link>
+                                        );
+                                    })}
 
                                     <SeparatorPrimitive.Root className="my-2 h-px bg-white/10" />
 

@@ -12,6 +12,8 @@ import StudyGroupPage from './pages/StudyGroupPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
 import BattlePage from './pages/BattlePage';
 import BattleDetailPage from './pages/BattleDetailPage';
+import TeacherClassPage from './pages/TeacherClassPage';
+import StudyBattlePage from './pages/StudyBattlePage';
 import { processSSOLogin } from './lib/auth';
 
 function App() {
@@ -72,6 +74,8 @@ function App() {
                 <Route path="study-group/:id" element={<StudyGroupDetailPage />} />
                 <Route path="battle" element={<BattlePage />} />
                 <Route path="battle/:code" element={<BattleDetailPage />} />
+                <Route path="teacher-class" element={<TeacherClassPage />} />
+                <Route path="study-battle" element={<StudyBattlePage />} />
             </Route>
         </Routes>
     );
