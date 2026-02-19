@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Menu, Bell, LogOut, Swords, Users, Wallet } from 'lucide-react';
+import { Menu, Bell, LogOut, Swords, Users } from 'lucide-react';
+import { WonCircle } from './icons';
 import { useAuthStore } from '../stores';
 import { cn } from '../lib/utils';
 import { Footer } from './footer';
@@ -86,10 +87,10 @@ export default function Layout() {
                             <>
                                 {/* 결제 */}
                                 <button
-                                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors"
                                     title="결제"
                                 >
-                                    <Wallet className="h-5 w-5" />
+                                    <WonCircle className="h-5 w-5" />
                                 </button>
 
                                 {/* 알림 */}
@@ -214,8 +215,8 @@ export default function Layout() {
 
                                     {/* 모바일 아이콘 메뉴 */}
                                     <div className="flex items-center gap-2 px-3 py-2">
-                                        <button className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="결제">
-                                            <Wallet className="h-5 w-5" />
+                                        <button className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors" title="결제">
+                                            <WonCircle className="h-5 w-5" />
                                         </button>
                                         <button className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="알림">
                                             <Bell className="h-5 w-5" />
